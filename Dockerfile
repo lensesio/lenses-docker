@@ -48,13 +48,13 @@ ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSES_VERSION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && echo "BUILD_BRANCH=${BUILD_BRANCH}"      | tee /build.info \
-    && echo "BUILD_COMMIT=${BUILD_COMMIT}"   | tee -a /build.info \
-    && echo "BUILD_TIME=${BUILD_TIME}"       | tee -a /build.info \
-    && echo "DOCKER_REPO=${DOCKER_REPO}"     | tee -a /build.info
+RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+    && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
+    && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
+    && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
+    && echo "DOCKER_REPO=${DOCKER_REPO}"    | tee -a /build.info
 
 EXPOSE 24005
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
