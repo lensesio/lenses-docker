@@ -1,57 +1,136 @@
 #!/usr/bin/env bash
 
-if [[ -z $LENSES_PORT ]]; then
-    export LENSES_PORT='9991'
-    echo "Setting LENSES_PORT=9991. Override by setting the environment variable."
-fi
-if [[ -z $LENSES_KAFKA_BROKERS ]]; then
-    export LENSES_KAFKA_BROKERS='"PLAINTEXT://localhost:9092"'
-    echo "Setting LENSES_KAFKA_BROKERS='\"PLAINTEXT://localhost:9092\"'. Override by setting the environment variable."
-fi
-if [[ -z $LENSES_ZOOKEEPER_HOSTS ]]; then
-    export LENSES_ZOOKEEPER_HOSTS='"localhost:2181"'
-    echo "Setting LENSES_ZOOKEEPERS='\"localhost:2181\"'. Override by setting the environment variable."
-fi
-if [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]; then
-    export LENSES_SCHEMA_REGISTRY_URLS='"http://localhost:8081"'
-    echo "Setting LENSES_SCHEMA_REGISTRY_URLS='\"http://localhost:8081\"'. Override by setting the environment variable."
-fi
-if [[ -z $LENSES_CONNECT ]]; then
-    export LENSES_CONNECT='[{default:"http://localhost:8083"}]'
-    echo "Setting LENSES_CONNECT='[{default:\"http://localhost:8083\"}]'. Override by setting the environment variable."
-fi
-if [[ -z $LENSES_JMX_BROKERS ]]; then
-    # LENSES_JMX_BROKERS="localhost:9581"
-    echo "LENSES_JMX_BROKERS is not set. Some functionality won't be available."
-fi
-if [[ -z $LENSES_JMX_SCHEMA_REGISTRY ]]; then
-    # LENSES_JMX_SCHEMA_REGISTRY="localhost:9582"
-    echo "LENSES_JMX_SCHEMA_REGISTRY is not set. Some functionality won't be available."
-fi
-if [[ -z $LENSES_JMX_ZOOKEEPERS ]]; then
-    # LENSES_JMX_ZOOKEEPERS="localhost:9585"
-    echo "LENSES_JMX_ZOOKEEPERS is not set. Some functionality won't be available."
-fi
-if [[ -z $LENSES_JMX_CONNECT ]]; then
-    # LENSES_JMX_CONNECT='[{default:"localhost:9584"}]'
-    echo "LENSES_JMX_CONNECT is not set. Some functionality won't be available."
-fi
-if [[ -z $LENSES_SECURITY_USERS ]]; then
-   export LENSES_SECURITY_USERS='[{"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]}]'
-   echo "LENSES_SECURITY_USERS is not set. Setting default user 'admin' with password 'admin'."
+OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS"
+OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_GRAFANA"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN LENSES_VERSION"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY LENSES_SECURITY_MEMBEROF_KEY"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX LENSES_SECURITY_GROUP_EXTRACT_REGEX"
+
+[[ -z $LENSES_PORT ]] && export LENSES_PORT='9991' \
+    && echo "Setting LENSES_PORT=9991. Override by setting the environment variable."
+
+[[ -z $LENSES_KAFKA_BROKERS ]] && export LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092' \
+    && echo "Setting LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092'. Override by setting the environment variable."
+
+[[ -z $LENSES_ZOOKEEPER_HOSTS ]] && export LENSES_ZOOKEEPER_HOSTS='localhost:2181' \
+    && echo "Setting LENSES_ZOOKEEPERS='localhost:2181'. Override by setting the environment variable."
+
+[[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  && export LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081' \
+    && echo "Setting LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081'. Override by setting the environment variable."
+
+[[ -z $LENSES_CONNECT ]] && export LENSES_CONNECT='[{default:"http://localhost:8083"}]' \
+    && echo "Setting LENSES_CONNECT='[{default:\"http://localhost:8083\"}]'. Override by setting the environment variable."
+
+[[ -z $LENSES_JMX_BROKERS ]] \
+    && echo "LENSES_JMX_BROKERS is not set. Some functionality won't be available."
+
+[[ -z $LENSES_JMX_SCHEMA_REGISTRY ]] \
+    && echo "LENSES_JMX_SCHEMA_REGISTRY is not set. Some functionality won't be available."
+
+[[ -z $LENSES_JMX_ZOOKEEPERS ]] \
+    && echo "LENSES_JMX_ZOOKEEPERS is not set. Some functionality won't be available."
+
+[[ -z $LENSES_JMX_CONNECT ]] \
+    && echo "LENSES_JMX_CONNECT is not set. Some functionality won't be available."
+
+[[ -z $LENSES_SECURITY_USERS ]] \
+    && export LENSES_SECURITY_USERS='[{"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]}]' \
+    && echo "LENSES_SECURITY_USERS is not set. Setting default user 'admin' with password 'admin'."
+
+[[ -z $LENSES_SQL_STATE_DIR ]] && export LENSES_SQL_STATE_DIR=/data/kafka-streams-state
+
+# Set logging
+sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
+[[ -z "$LENSES_LOG4J_OPTS" ]] && export LENSES_LOG4J_OPTS="-Dlogback.configurationFile=file:/data/logback.xml"
+
+# Check for port availability
+if ! /usr/local/bin/checkport -port "$LENSES_PORT"; then
+    echo "ERROR! Lenses port (LENSES_PORT=$LENSES_PORT) is in use by some other program."
+    echo "       Lenses will probably fail to start."
 fi
 
+# Add prefix and suffix spaces, so our regexp check below will work.
+OPTS_JVM=" $OPTS_JVM "
+OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
+
+# Rename env vars and write settings or export OPTS
 for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
-    # to lowercase
+    # If _OPTS, export them
+    if [[ "$OPTS_JVM" =~ " $var " ]]; then
+        export ${var}=${!var}
+        continue
+    fi
+
+    # Convert var name to lowercase
     conf="${var,,}"
-    # underscore to stop
+    # Convert underscores in var name to stops
     conf="${conf//_/.}"
+
+    # If setting needs to be quoted, write with quotes
+    if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
+        echo "${conf}=\"${!var}\""
+        echo "${conf}=\"${!var}\"" >> /data/lenses.conf
+        continue
+    fi
+
+    # Else write without quotes (some vars must not have quotes)
     echo "${conf}=${!var}"
-    echo "${conf}=${!var}" >> /lenses.conf
+    echo "${conf}=${!var}" >> /data/lenses.conf
 done
 
-echo "lenses.license.file=/license.json" >> /lenses.conf
+# If not explicit license path
+if ! grep -sq 'lenses.license.file=' /data/lenses.conf; then
+    echo "lenses.license.file=/data/license.json" >> /data/lenses.conf
+# Take care of  license path
+    if [[ -f /license.json ]]; then
+        cp /license.json /data/license.json
+    elif [[ ! -z "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
+        echo "$LICENSE" >> /data/license.json
+    elif [[ ! -z "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
+        wget "$LICENSE_URL" -O /data/license.json
+        if [[ $? -ne 0 ]]; then
+            echo "ERROR! Could not download license. Maybe the link was wrong or the license expired?"
+            echo "       Please check and try again. If the problem persists contact Landoop."
+            exit 1
+        fi
+    elif [[ -f /data/license.json ]]; then
+        echo
+    else
+        echo -e "ERROR! No license was provided. Lenses will not work."
+    fi
+fi
 
+# Check User and Group IDs
+C_UID="$(id -u)"
+C_GID="$(id -g)"
+# C_LOG_UID="$(stat -c '%u' /data/log)"
+# C_LOG_GID="$(stat -c '%g' /data/log)"
+# C_STATE_UID="$(stat -c '%u' /data/kafka-streams-state)"
+# C_STATE_GID="$(stat -c '%g' /data/kafka-streams-state)"
+C_SUCMD=""
+C_SUID=""
+if [[ "$C_UID" == 0 ]]; then
+    echo "Running as root. Will change data ownership to nobody:nobody (65534:65534)"
+    echo "and drop priviliges."
+    chown -R nobody:nobody /data/log /data/kafka-streams-state
+    C_SUCMD=/sbin/su-exec
+    C_SUID="nobody:nobody"
+else
+    LOG_WRITEABLE=0
+    STATE_WRITEABLE=0
+    echo "Running as user:group $C_UID:$C_GID. Checking permissions."
+    touch /data/log/lenses-test >/dev/null 2>&1 \
+        && LOG_WRITEABLE=1 && rm /data/log/lenses-test
+    [[ $LOG_WRITEABLE == 0 ]] \
+        && echo "ERROR! /data/log/ is not writeable by the set user:group ($C_UID:$C_GID)." \
+        && echo "       You can ignore this error if you set a custom, writeable directory for logs."
+    touch /data/kafka-streams-state/lenses-test >/dev/null 2>&1 \
+        && STATE_WRITEABLE=1 && rm /data/kafka-streams-state/lenses-test
+    [[ $STATE_WRITEABLE == 0 ]] \
+        && echo "ERROR! /data/kafka-streams-state/ is not writeable by the set user:group ($C_UID:$C_GID)." \
+        && echo "       You can ignore this error if you set a custom, writeable directory for state."
+fi
 
-exec /opt/lenses/bin/lenses /lenses.conf
-
+exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
