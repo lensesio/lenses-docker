@@ -108,6 +108,9 @@ if ! grep -sq 'lenses.license.file=' /data/lenses.conf; then
     fi
 fi
 
+# We created all need files. Set a more permissive umask for data and logs
+umask 0027
+
 # Check User and Group IDs
 C_UID="$(id -u)"
 C_GID="$(id -g)"
@@ -139,5 +142,4 @@ else
         && echo "       You can ignore this error if you set a custom, writeable directory for state."
 fi
 
-umask 0027
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
