@@ -1,26 +1,19 @@
-FROM alpine
+FROM debian:latest
 MAINTAINER Marios Andreopoulos <marios@landoop.com>
 
 # Update, install tooling and some basic setup
-RUN apk add --no-cache \
-        bash coreutils \
-        wget curl \
-        tar gzip \
-        su-exec \
+RUN apt-get update && apt-get install -y \
+        wget \
+        gosu \
+    && rm -rf /var/lib/apt/lists/* \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
-    && mkdir /opt \
     && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
             -O /usr/local/bin/checkport \
     && wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 \
             -O /usr/local/bin/dumb-init \
     && chmod +755 /usr/local/bin/checkport /usr/local/bin/dumb-init \
-    && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]fast-data-dev \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
-            > /root/.bashrc \
-    && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/unreleased/glibc-2.26-r0.apk \
-    && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/unreleased/glibc-bin-2.26-r0.apk \
-    && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/unreleased/glibc-i18n-2.26-r0.apk \
-    &&  apk add --no-cache --allow-untrusted glibc-2.26-r0.apk glibc-bin-2.26-r0.apk glibc-i18n-2.26-r0.apk \
-    && rm -f glibc-2.26-r0.apk glibc-bin-2.26-r0.apk glibc-i18n-2.26-r0.apk
+    && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
+            | tee -a /root/.bashrc >> /etc/bash.bashrc
 
 # Install lenses
 ARG AD_UN

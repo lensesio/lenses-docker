@@ -121,11 +121,11 @@ C_GID="$(id -g)"
 C_SUCMD=""
 C_SUID=""
 if [[ "$C_UID" == 0 ]]; then
-    echo "Running as root. Will change data ownership to nobody:nobody (65534:65534)"
+    echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
     echo "and drop priviliges."
-    chown -R nobody:nobody /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/logback.xml
-    C_SUCMD=/sbin/su-exec
-    C_SUID="nobody:nobody"
+    chown -R nobody:nogroup /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/logback.xml
+    C_SUCMD=/usr/sbin/gosu
+    C_SUID="nobody:nogroup"
 else
     LOG_WRITEABLE=0
     STATE_WRITEABLE=0
