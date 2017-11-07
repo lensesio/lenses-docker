@@ -55,6 +55,11 @@ fi
 OPTS_JVM=" $OPTS_JVM "
 OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
 
+# Remove configuration because it will be re-created.
+rm -f /data/lenses.conf
+rm -rf /tmp/vlxjre
+
+
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
     # If _OPTS, export them
