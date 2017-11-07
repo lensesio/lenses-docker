@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+umask 0077
+
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS"
 OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_GRAFANA"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
@@ -58,7 +60,6 @@ OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
 # Remove configuration because it will be re-created.
 rm -f /data/lenses.conf
 rm -rf /tmp/vlxjre
-
 
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
@@ -119,7 +120,7 @@ C_SUID=""
 if [[ "$C_UID" == 0 ]]; then
     echo "Running as root. Will change data ownership to nobody:nobody (65534:65534)"
     echo "and drop priviliges."
-    chown -R nobody:nobody /data/log /data/kafka-streams-state
+    chown -R nobody:nobody /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/logback.xml
     C_SUCMD=/sbin/su-exec
     C_SUID="nobody:nobody"
 else
@@ -138,4 +139,5 @@ else
         && echo "       You can ignore this error if you set a custom, writeable directory for state."
 fi
 
+umask 0027
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
