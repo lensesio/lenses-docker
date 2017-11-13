@@ -13,7 +13,8 @@ RUN apt-get update && apt-get install -y \
             -O /usr/local/bin/dumb-init \
     && chmod +755 /usr/local/bin/checkport /usr/local/bin/dumb-init \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
-            | tee -a /root/.bashrc >> /etc/bash.bashrc
+            | tee -a /root/.bashrc >> /etc/bash.bashrc \
+    && mkdir -p /mnt/settings /mnt/secrets
 
 # Install lenses
 ARG AD_UN
@@ -23,8 +24,8 @@ RUN wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
     && tar xf /lenses.tgz -C /opt \
     && rm /lenses.tgz
 
-ADD setup.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/setup.sh
+ADD setup.sh debug-setup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT

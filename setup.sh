@@ -9,7 +9,23 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCES
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY LENSES_SECURITY_MEMBEROF_KEY"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX LENSES_SECURITY_GROUP_EXTRACT_REGEX"
+OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 
+# Load settings from files
+for fileSetting in $(find /mnt/settings -name "LENSES_*"); do
+    fileSettingClean="$(basename "$fileSetting")"
+    export "${fileSettingClean}"="$(cat "$fileSetting")"
+    echo "$fileSetting"
+done
+
+# Load secrets from files
+for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
+    fileSecretClean="$(basename "$fileSecret")"
+    export "${fileSecretClean}"="$(cat "$fileSecret")"
+    echo "$fileSecret"
+done
+
+# Check for important settings that aren't explicitly set
 [[ -z $LENSES_PORT ]] && export LENSES_PORT='9991' \
     && echo "Setting LENSES_PORT=9991. Override by setting the environment variable."
 
@@ -56,6 +72,7 @@ fi
 # Add prefix and suffix spaces, so our regexp check below will work.
 OPTS_JVM=" $OPTS_JVM "
 OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
+OPTS_SENSITIVE=" $OPTS_SENSITIVE "
 
 # Remove configuration because it will be re-created.
 rm -f /data/lenses.conf
@@ -65,7 +82,7 @@ rm -rf /tmp/vlxjre
 for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
     # If _OPTS, export them
     if [[ "$OPTS_JVM" =~ " $var " ]]; then
-        export ${var}=${!var}
+        export "${var}"="${!var}"
         continue
     fi
 
@@ -76,14 +93,24 @@ for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
 
     # If setting needs to be quoted, write with quotes
     if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
-        echo "${conf}=\"${!var}\""
         echo "${conf}=\"${!var}\"" >> /data/lenses.conf
+        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+            echo "${conf}=********"
+            unset "${var}"
+        else
+            echo "${conf}=\"${!var}\""
+        fi
         continue
     fi
 
     # Else write without quotes (some vars must not have quotes)
-    echo "${conf}=${!var}"
     echo "${conf}=${!var}" >> /data/lenses.conf
+    if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+        echo "${conf}=********"
+        unset "${var}"
+    else
+        echo "${conf}=${!var}"
+    fi
 done
 
 # If not explicit license path
