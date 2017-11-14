@@ -17,7 +17,7 @@ This image has to be run alongside a Kafka cluster.
 
 ## How to run
 
-In the current iteration `landoop/lenses` uses environment variables for configuration. For any lenses configuration option, set an environment variable by converting the option name to uppercase and with dots replaced by underscores. As an example `lenses.port` should be converted to `LENSES_PORT`.
+In the current iteration `landoop/lenses` uses environment variables for configuration. For any lenses configuration option, set an environment variable by converting the option name to uppercase and with dots replaced by underscores. As an example `lenses.port` should be converted to `LENSES_PORT`. Optionally settings may be mount as volumes under `/mnt/settings` or `/mnt/secrets`. As an example you could set —file— volume `/mnt/settings/LENSES_PORT` with the port number as the content of the file.
 
 A brief example of a docker-compose file to setup Lenses, would be:
 
@@ -44,7 +44,7 @@ services:
           {"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]},
           {"username": "writer", "password": "writer", "displayname": "Lenses Writer", "roles": ["read", "write"]},
           {"username": "reader", "password": "reader", "displayname": "Lenses Reader", "roles": ["read"]},
-          {"username": "nodata", "nodata": "nodata", "displayname": "Lenses NoData", "roles": ["nodata"]}
+          {"username": "nodata", "password": "nodata", "displayname": "Lenses NoData", "roles": ["nodata"]}
         ]
     ports:
       - 9991:9991
@@ -62,7 +62,7 @@ The container starts with root privileges and drops to `nobody:nogroup` (`65534:
 
 Lenses require a license file in order to start. It may be passed to the container via three methods:
 
-- As a file, mounted at /license.json (e.g `-v /path/to/license.json:/license.json`)
+- As a file, mounted at /license.json or /mnt/secrets/license.json (e.g `-v /path/to/license.json:/license.json`)
 - As the contents of the environment variable LICENSE (e.g `-e LICENSE="$(cat license.json)"`)
 - As a downloadable URL via LICENSE_URL (e.g `-e LICENSE_URL="https://license.url/"`)
 

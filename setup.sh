@@ -9,6 +9,11 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCES
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY LENSES_SECURITY_MEMBEROF_KEY"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX LENSES_SECURITY_GROUP_EXTRACT_REGEX"
+# We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking) can create settings
+# that we process (env var that starts with 'LENSES_') and put into the conf file. Although lenses will ignore the settings,
+# these settings usually include characters that need quotes, that now we also set explicitly which fields do not need
+# quotes. Later for settings that do not much either of OPTS_NEEDQUOTE and OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
+OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_JMX_CONNECT LENSES_SECURITY_USERS LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS"
 OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 
 # Load settings from files
@@ -72,6 +77,7 @@ fi
 # Add prefix and suffix spaces, so our regexp check below will work.
 OPTS_JVM=" $OPTS_JVM "
 OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
+OPTS_NEEDNOQUOTE=" $OPTS_NEEDNOQUOTE "
 OPTS_SENSITIVE=" $OPTS_SENSITIVE "
 
 # Remove configuration because it will be re-created.
@@ -79,7 +85,15 @@ rm -f /data/lenses.conf
 rm -rf /tmp/vlxjre
 
 # Rename env vars and write settings or export OPTS
-for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
+for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
+    # Try to detect some envs set by kubernetes and/or docker link and skip them.
+    if [[ "$var" =~ [^=]+TCP_(PORT|ADDR).* ]] \
+           || [[ "$var" =~ [^=]+_[0-9]{1,5}_(TCP|UDP).* ]] \
+           || [[ "$var" =~ [^=]+_SERVICE_PORT.* ]]; then
+        echo "Skipping variable probably set by container supervisor: $var"
+        continue
+    fi
+
     # If _OPTS, export them
     if [[ "$OPTS_JVM" =~ " $var " ]]; then
         export "${var}"="${!var}"
@@ -103,8 +117,25 @@ for var in $(printenv | grep LENSES | sed -e 's/=.*//'); do
         continue
     fi
 
-    # Else write without quotes (some vars must not have quotes)
-    echo "${conf}=${!var}" >> /data/lenses.conf
+    # If settings must not have quotes, write without quotes
+    if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
+        echo "${conf}=${!var}" >> /data/lenses.conf
+        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+            echo "${conf}=********"
+            unset "${var}"
+        else
+            echo "${conf}=${!var}"
+        fi
+        continue
+    fi
+
+    # Else try to detect if we need quotes
+    if [[ "$var" =~ [^=]+=.*[:,*/].* ]]; then
+        echo -n "[Variable needed quotes] "
+        echo "${conf}=\"${!var}\"" >> /data/lenses.conf
+    else
+        echo "${conf}=${!var}" >> /data/lenses.conf
+    fi
     if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
         echo "${conf}=********"
         unset "${var}"
@@ -119,6 +150,8 @@ if ! grep -sq 'lenses.license.file=' /data/lenses.conf; then
 # Take care of  license path
     if [[ -f /license.json ]]; then
         cp /license.json /data/license.json
+    elif [[ -f /mnt/secrets/license.json ]]; then
+        cp /mnt/secrets/license.json /data/license.json
     elif [[ ! -z "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
         echo "$LICENSE" >> /data/license.json
     elif [[ ! -z "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
