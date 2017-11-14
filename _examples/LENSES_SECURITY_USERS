@@ -1,0 +1,26 @@
+[
+  {
+    "username": "admin",
+    "password": "admin",
+    "displayname": "Lenses Admin",
+    "roles": ["admin", "write", "read"]
+  },
+  {
+    "username": "writer",
+    "password": "writer",
+    "displayname": "Lenses Writer",
+    "roles": ["read", "write"]
+  },
+  {
+    "username": "reader",
+    "password": "reader",
+    "displayname": "Lenses Reader",
+    "roles": ["read"]
+  },
+  {
+    "username": "nodata",
+    "password": "nodata",
+    "displayname": "Lenses NoData",
+    "roles": ["nodata"]
+  }
+]
