@@ -8,7 +8,7 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LE
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN LENSES_VERSION"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY LENSES_SECURITY_MEMBEROF_KEY"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX LENSES_SECURITY_GROUP_EXTRACT_REGEX"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
 # We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking) can create settings
 # that we process (env var that starts with 'LENSES_') and put into the conf file. Although lenses will ignore the settings,
 # these settings usually include characters that need quotes, that now we also set explicitly which fields do not need
@@ -130,7 +130,7 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 
     # Else try to detect if we need quotes
-    if [[ "$var" =~ [^=]+=.*[:,*/].* ]]; then
+    if [[ "${!var}" =~ [^=]+=.*[?:,*/].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> /data/lenses.conf
     else
@@ -143,6 +143,9 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
         echo "${conf}=${!var}"
     fi
 done
+
+# Fix for case sensitive LDAP setting:
+sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
 
 # If not explicit license path
 if ! grep -sq 'lenses.license.file=' /data/lenses.conf; then
