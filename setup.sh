@@ -13,7 +13,7 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
 # that we process (env var that starts with 'LENSES_') and put into the conf file. Although lenses will ignore the settings,
 # these settings usually include characters that need quotes, that now we also set explicitly which fields do not need
 # quotes. Later for settings that do not much either of OPTS_NEEDQUOTE and OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
-OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_JMX_CONNECT LENSES_SECURITY_USERS LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS"
+OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENSES_SECURITY_USERS LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS"
 OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 
 # Load settings from files
