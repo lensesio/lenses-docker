@@ -130,7 +130,7 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 
     # Else try to detect if we need quotes
-    if [[ "${!var}" =~ [^=]+=.*[?:,*/].* ]]; then
+    if [[ "${!var}" =~ .*[?:,*/].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> /data/lenses.conf
     else
