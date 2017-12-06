@@ -3,17 +3,20 @@
 umask 0077
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS"
-OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_GRAFANA"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN LENSES_VERSION"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY LENSES_SECURITY_MEMBEROF_KEY"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
-# We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking) can create settings
-# that we process (env var that starts with 'LENSES_') and put into the conf file. Although lenses will ignore the settings,
-# these settings usually include characters that need quotes, that now we also set explicitly which fields do not need
-# quotes. Later for settings that do not much either of OPTS_NEEDQUOTE and OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
-OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENSES_SECURITY_USERS LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS"
+OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE  LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
+# We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking)
+# can create settings that we process (env vars that start with 'LENSES_') and put into the conf file. Although
+# lenses will ignore these settings, they usually include characters that need quotes, so now we also need to
+# set explicitly which fields do not need quotes. For the settings that do not much either of OPTS_NEEDQUOTE
+# or OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
+OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENSES_SECURITY_USERS"
+OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS LENSES_SQL_CONNECT_CLUSTERS"
 OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 
 # Load settings from files
@@ -84,6 +87,57 @@ OPTS_SENSITIVE=" $OPTS_SENSITIVE "
 rm -f /data/lenses.conf
 rm -rf /tmp/vlxjre
 
+# This takes as arguments a variable name and a file (lenses.conf or security.conf)
+# and process the variable before adding it to the file (i.e convert to lowercase,
+# check if it needs quotes, etc).
+function process_variable {
+    local var="$1"
+    local config_file="$2"
+
+    # Convert var name to lowercase
+    conf="${var,,}"
+    # Convert underscores in var name to stops
+    conf="${conf//_/.}"
+
+    # If setting needs to be quoted, write with quotes
+    if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
+        echo "${conf}=\"${!var}\"" >> "$config_file"
+        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+            echo "${conf}=********"
+            unset "${var}"
+        else
+            echo "${conf}=\"${!var}\""
+        fi
+        continue
+    fi
+
+    # If settings must not have quotes, write without quotes
+    if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
+        echo "${conf}=${!var}" >> "$config_file"
+        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+            echo "${conf}=********"
+            unset "${var}"
+        else
+            echo "${conf}=${!var}"
+        fi
+        continue
+    fi
+
+    # Else try to detect if we need quotes
+    if [[ "${!var}" =~ .*[?:,*/].* ]]; then
+        echo -n "[Variable needed quotes] "
+        echo "${conf}=\"${!var}\"" >> "$config_file"
+    else
+        echo "${conf}=${!var}" >> "$config_file"
+    fi
+    if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+        echo "${conf}=********"
+        unset "${var}"
+    else
+        echo "${conf}=${!var}"
+    fi
+}
+
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     # Try to detect some envs set by kubernetes and/or docker link and skip them.
@@ -100,47 +154,10 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
         continue
     fi
 
-    # Convert var name to lowercase
-    conf="${var,,}"
-    # Convert underscores in var name to stops
-    conf="${conf//_/.}"
-
-    # If setting needs to be quoted, write with quotes
-    if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
-        echo "${conf}=\"${!var}\"" >> /data/lenses.conf
-        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
-            echo "${conf}=********"
-            unset "${var}"
-        else
-            echo "${conf}=\"${!var}\""
-        fi
-        continue
-    fi
-
-    # If settings must not have quotes, write without quotes
-    if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
-        echo "${conf}=${!var}" >> /data/lenses.conf
-        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
-            echo "${conf}=********"
-            unset "${var}"
-        else
-            echo "${conf}=${!var}"
-        fi
-        continue
-    fi
-
-    # Else try to detect if we need quotes
-    if [[ "${!var}" =~ .*[?:,*/].* ]]; then
-        echo -n "[Variable needed quotes] "
-        echo "${conf}=\"${!var}\"" >> /data/lenses.conf
+    if [[ "$var" =~ ^LENSES_SECURITY.* ]]; then
+        process_variable "$var" /data/security.conf
     else
-        echo "${conf}=${!var}" >> /data/lenses.conf
-    fi
-    if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
-        echo "${conf}=********"
-        unset "${var}"
-    else
-        echo "${conf}=${!var}"
+        process_variable "$var" /data/lenses.conf
     fi
 done
 
