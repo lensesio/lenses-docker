@@ -4,7 +4,7 @@ This is the official image of Landoop’s Lenses for Apache Kafka software.
 
 Lenses is a Streaming Data Management Platform. It enhances Kafka with a web user interface and vital enterprise capabilities that enable engineering and data teams to query real time data, create and monitor Kafka topologies with rich integrations to other systems and gain operational awareness of their clusters.
 
-Please visit our [website](https://www.landoop.com/) or the [documentation pages](https://www.landoop.com/docs/lenses/lenses/) to learn more.
+Please visit our [website](https://www.landoop.com/) or the [documentation pages](https://www.landoop.com/docs/lenses/) to learn more.
 
 
 ## The Docker Image
@@ -68,7 +68,7 @@ Lenses require a license file in order to start. It may be passed to the contain
 
 ---
 
-For more information, please visit our [documentation](https://www.landoop.com/docs/lenses/lenses). Enterprise customers may use the support channels made available to them. Developer Edition users are encouraged to visit our [gitter chat](https://gitter.im/Landoop/support). We are always happy to help and hear from you.
+For more information, please visit our [documentation](https://www.landoop.com/docs/lenses/). Enterprise customers may use the support channels made available to them. Developer Edition users are encouraged to visit our [gitter chat](https://gitter.im/Landoop/support). We are always happy to help and hear from you.
 
 With respect,
 
