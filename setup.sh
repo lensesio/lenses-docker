@@ -46,8 +46,8 @@ done
 [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  && export LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081' \
     && echo "Setting LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081'. Override by setting the environment variable."
 
-[[ -z $LENSES_CONNECT ]] && export LENSES_CONNECT='[{default:"http://localhost:8083"}]' \
-    && echo "Setting LENSES_CONNECT='[{default:\"http://localhost:8083\"}]'. Override by setting the environment variable."
+[[ -z $LENSES_CONNECT_CLUSTERS ]] \
+    && echo "LENSES_CONNECT_CLUSTERS is not set."
 
 [[ -z $LENSES_JMX_BROKERS ]] \
     && echo "LENSES_JMX_BROKERS is not set. Some functionality won't be available."
@@ -108,7 +108,7 @@ function process_variable {
         else
             echo "${conf}=\"${!var}\""
         fi
-        continue
+        return 0
     fi
 
     # If settings must not have quotes, write without quotes
@@ -120,11 +120,11 @@ function process_variable {
         else
             echo "${conf}=${!var}"
         fi
-        continue
+        return 0
     fi
 
     # Else try to detect if we need quotes
-    if [[ "${!var}" =~ .*[?:,*/].* ]]; then
+    if [[ "${!var}" =~ .*[?:,()*/].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> "$config_file"
     else
@@ -161,11 +161,16 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 done
 
-# Fix for case sensitive LDAP setting:
-sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
+# # Fix for case sensitive LDAP setting:
+# sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
+
+# If not explicit security file set auto-generated:
+if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
+    echo "lenses.secret.file=/data/security.conf" >> /data/lenses.conf
+fi
 
 # If not explicit license path
-if ! grep -sq 'lenses.license.file=' /data/lenses.conf; then
+if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
     echo "lenses.license.file=/data/license.json" >> /data/lenses.conf
 # Take care of  license path
     if [[ -f /license.json ]]; then
@@ -203,7 +208,7 @@ C_SUID=""
 if [[ "$C_UID" == 0 ]]; then
     echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
     echo "and drop priviliges."
-    chown -R nobody:nogroup /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/logback.xml
+    chown -R nobody:nogroup /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/security.conf /data/logback.xml
     C_SUCMD=/usr/sbin/gosu
     C_SUID="nobody:nogroup"
 else
