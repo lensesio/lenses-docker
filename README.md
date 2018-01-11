@@ -31,7 +31,7 @@ services:
       LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
       LENSES_ZOOKEEPER_HOSTS: "zookeeper.1.url:2181,zookeeper.2.url:2181/znode"
       LENSES_SCHEMA_REGISTRY_URLS: "http://schema.registry.1.url:8081,http://schema.registry.2.url:8081"
-      LENSES_CONNECT: '[{name: "production", url: "http://connect.worker.1.url:8083,http://connect.worker.2.url:8083", statuses: "connect-statuses", configs: "connect-configs", offsets: "connect-offsets"}]'
+      LENSES_CONNECT_CLUSTERS: '[{name: "production", url: "http://connect.worker.1.url:8083,http://connect.worker.2.url:8083", statuses: "connect-statuses", configs: "connect-configs", offsets: "connect-offsets"}]'
       # For JMX you need to enumerate all your instances. We are working to improve this. You can skip the brokers (we autodetect them).
       LENSES_JMX_BROKERS: "broker.1.url:9581,broker.2.url:9581,broker.3.url:9581"
       LENSES_JMX_SCHEMA_REGISTRY: "schema.registry.1.url:9582,schema.registry.2.url:9582"
