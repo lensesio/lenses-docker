@@ -184,12 +184,12 @@ done
 
 # If not explicit security file set auto-generated:
 if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
-    echo "lenses.secret.file=/data/security.conf" >> /data/lenses.conf
+    echo -e "\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
 fi
 
 # If not explicit license path
 if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
-    echo "lenses.license.file=/data/license.json" >> /data/lenses.conf
+    echo -e "\nlenses.license.file=/data/license.json" >> /data/lenses.conf
 # Take care of  license path
     if [[ -f /license.json ]]; then
         cp /license.json /data/license.json
