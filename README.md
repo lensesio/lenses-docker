@@ -69,7 +69,7 @@ but it is possible to set directly these files instead.
 
 Create your configuration files according to the [documentation](http://lenses.stream/install_setup/configuration/lenses-config.html) and mount them
 under `/mnt/secrets` —i.e `/mnt/secrets/lenses.conf` and `/mnt/secrets/security.conf`. You can set either one or both together. Please for `lenses.conf`
-omit the settings `lenses.secrets.file` and `lenses.license.file`. If by any chance you set them, you have to make sure lenses can find the files
+omit the settings `lenses.secret.file` and `lenses.license.file`. If by any chance you set them, you have to make sure lenses can find the files
 described in these settings.
 
 ### The license file
