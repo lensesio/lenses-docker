@@ -245,4 +245,7 @@ else
         && echo "       You can ignore this error if you set a custom, writeable directory for state."
 fi
 
+# Enable fastdata_agent for exporting metrics to prometheus
+export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=9102:opt/landoop/fast_data_monitoring/client.yml"
+
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
