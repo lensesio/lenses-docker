@@ -139,9 +139,9 @@ function process_variable {
 }
 
 DETECTED_LENFILE=false
-if [[ -f /mnt/secrets/lenses.conf ]]; then
-    echo "Detected /mnt/secrets/lenses.conf. Will use that and ignore any environment variables!"
-    cp /mnt/secrets/lenses.conf /data/lenses.conf
+if [[ -f /mnt/settings/lenses.conf ]]; then
+    echo "Detected /mnt/settings/lenses.conf. Will use that and ignore any environment variables!"
+    cp /mnt/settings/lenses.conf /data/lenses.conf
     DETECTED_LENFILE=true
 fi
 
