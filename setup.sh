@@ -138,6 +138,20 @@ function process_variable {
     fi
 }
 
+DETECTED_LENFILE=false
+if [[ -f /mnt/secrets/lenses.conf ]]; then
+    echo "Detected /mnt/secrets/lenses.conf. Will use that and ignore any environment variables!"
+    cp /mnt/secrets/lenses.conf /data/lenses.conf
+    DETECTED_LENFILE=true
+fi
+
+DETECTED_SECFILE=false
+if [[ -f /mnt/secrets/security.conf ]]; then
+    echo "Detected /mnt/secrets/security.conf. Will use that and ignore any environment variables!"
+    cp /mnt/secrets/security.conf /data/security.conf
+    DETECTED_SECFILE=true
+fi
+
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     # Try to detect some envs set by kubernetes and/or docker link and skip them.
@@ -155,9 +169,13 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 
     if [[ "$var" =~ ^LENSES_SECURITY.* ]]; then
-        process_variable "$var" /data/security.conf
+        if [[ "$DETECTED_SECFILE" == "false" ]]; then
+            process_variable "$var" /data/security.conf
+        fi
     else
-        process_variable "$var" /data/lenses.conf
+        if [[ "$DETECTED_LENFILE" == "false" ]]; then
+            process_variable "$var" /data/lenses.conf
+        fi
     fi
 done
 

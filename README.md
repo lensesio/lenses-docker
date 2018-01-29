@@ -17,7 +17,11 @@ This image has to be run alongside a Kafka cluster.
 
 ## How to run
 
-In the current iteration `landoop/lenses` uses environment variables for configuration. For any lenses configuration option, set an environment variable by converting the option name to uppercase and with dots replaced by underscores. As an example `lenses.port` should be converted to `LENSES_PORT`. Optionally settings may be mount as volumes under `/mnt/settings` or `/mnt/secrets`. As an example you could set —file— volume `/mnt/settings/LENSES_PORT` with the port number as the content of the file.
+In the current iteration `landoop/lenses` uses environment variables as the primary means for configuration and alternatively configuration files.
+
+### Setup with environment variables
+
+For any lenses configuration option, set an environment variable by converting the option name to uppercase and with dots replaced by underscores. As an example `lenses.port` should be converted to `LENSES_PORT`. Optionally settings may be mount as volumes under `/mnt/settings` or `/mnt/secrets`. As an example you could set —file— volume `/mnt/settings/LENSES_PORT` with the port number as the content of the file.
 
 A brief example of a docker-compose file to setup Lenses, would be:
 
@@ -58,6 +62,16 @@ The docker image has two volumes where data are saved: `/data/log` for logs and 
 
 The container starts with root privileges and drops to `nobody:nogroup` (`65534:65534`) before running Lenses. If you start the image as a custom `user:group`, it falls under your responsibility to make sure that the two volumes are writeable by the custom `user:group`.
 
+### Setup with configuration files
+
+Lenses software configuration is driven by two files: `lenses.conf` and `security.conf`. In the docker image we create them automatically from environment variables
+but it is possible to set directly these files instead.
+
+Create your configuration files according to the [documentation](http://lenses.stream/install_setup/configuration/lenses-config.html) and mount them
+under `/mnt/secrets` —i.e `/mnt/secrets/lenses.conf` and `/mnt/secrets/security.conf`. You can set either one or both together. Please for `lenses.conf`
+omit the settings `lenses.secrets.file` and `lenses.license.file`. If by any chance you set them, you have to make sure lenses can find the files
+described in these settings.
+
 ### The license file
 
 Lenses require a license file in order to start. It may be passed to the container via three methods:
@@ -76,4 +90,4 @@ The Lenses Team.
 
 ---
 
-Copyright 2017, Landoop LTD
+Copyright 2017-2018, Landoop LTD
