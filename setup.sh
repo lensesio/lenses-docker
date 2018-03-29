@@ -42,26 +42,14 @@ done
 [[ -z $LENSES_KAFKA_BROKERS ]] && export LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092' \
     && echo "Setting LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092'. Override by setting the environment variable."
 
-[[ -z $LENSES_ZOOKEEPER_HOSTS ]] && export LENSES_ZOOKEEPER_HOSTS='localhost:2181' \
+[[ -z $LENSES_ZOOKEEPER_HOSTS ]] && export LENSES_ZOOKEEPER_HOSTS='[{url:"localhost:2181"}]' \
     && echo "Setting LENSES_ZOOKEEPERS='localhost:2181'. Override by setting the environment variable."
 
-[[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  && export LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081' \
-    && echo "Setting LENSES_SCHEMA_REGISTRY_URLS='http://localhost:8081'. Override by setting the environment variable."
+[[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  \
+    && echo "LENSES_SCHEMA_REGISTRY_URLS is not set."
 
 [[ -z $LENSES_CONNECT_CLUSTERS ]] \
     && echo "LENSES_CONNECT_CLUSTERS is not set."
-
-[[ -z $LENSES_JMX_BROKERS ]] \
-    && echo "LENSES_JMX_BROKERS is not set. Some functionality won't be available."
-
-[[ -z $LENSES_JMX_SCHEMA_REGISTRY ]] \
-    && echo "LENSES_JMX_SCHEMA_REGISTRY is not set. Some functionality won't be available."
-
-[[ -z $LENSES_JMX_ZOOKEEPERS ]] \
-    && echo "LENSES_JMX_ZOOKEEPERS is not set. Some functionality won't be available."
-
-[[ -z $LENSES_JMX_CONNECT ]] \
-    && echo "LENSES_JMX_CONNECT is not set. Some functionality won't be available."
 
 [[ -z $LENSES_SECURITY_USERS ]] \
     && export LENSES_SECURITY_USERS='[{"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]}]' \
