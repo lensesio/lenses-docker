@@ -36,14 +36,14 @@ for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
 done
 
 # Check for important settings that aren't explicitly set
-[[ -z $LENSES_PORT ]] && export LENSES_PORT='9991' \
-    && echo "Setting LENSES_PORT=9991. Override by setting the environment variable."
+[[ -z $LENSES_PORT ]] \
+    && echo "LENSES_PORT=9991 is not set."
 
-[[ -z $LENSES_KAFKA_BROKERS ]] && export LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092' \
-    && echo "Setting LENSES_KAFKA_BROKERS='PLAINTEXT://localhost:9092'. Override by setting the environment variable."
+[[ -z $LENSES_KAFKA_BROKERS ]] \
+    && echo "LENSES_KAFKA_BROKERS is not set."
 
-[[ -z $LENSES_ZOOKEEPER_HOSTS ]] && export LENSES_ZOOKEEPER_HOSTS='[{url:"localhost:2181"}]' \
-    && echo "Setting LENSES_ZOOKEEPERS='localhost:2181'. Override by setting the environment variable."
+[[ -z $LENSES_ZOOKEEPER_HOSTS ]] \
+    && echo "LENSES_ZOOKEEPERS is not set."
 
 [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  \
     && echo "LENSES_SCHEMA_REGISTRY_URLS is not set."
@@ -52,8 +52,7 @@ done
     && echo "LENSES_CONNECT_CLUSTERS is not set."
 
 [[ -z $LENSES_SECURITY_USERS ]] \
-    && export LENSES_SECURITY_USERS='[{"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]}]' \
-    && echo "LENSES_SECURITY_USERS is not set. Setting default user 'admin' with password 'admin'."
+    && echo "LENSES_SECURITY_USERS is not set."
 
 [[ -z $LENSES_SQL_STATE_DIR ]] && export LENSES_SQL_STATE_DIR=/data/kafka-streams-state
 
@@ -173,8 +172,11 @@ done
 # sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
 
 # If not explicit security file set auto-generated:
+DETECTED_SECAPPENDFILE=false
 if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
     echo -e "\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
+else
+    DETECTED_SECAPPENDFILE=true
 fi
 
 # If not explicit license path
@@ -198,6 +200,19 @@ if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
         echo
     else
         echo -e "ERROR! No license was provided. Lenses will not work."
+    fi
+fi
+
+# Append Advanced Configuration Snippet
+if [[ -f /mnt/settings/lenses.append.conf ]]; then
+    cat /mnt/settings/lenses.append.conf >> /data/lenses.conf
+    echo "Appending advanced configuration snippet to lenses.conf"
+fi
+if [[ -f /mnt/settings/security.append.conf ]]; then
+    cat /mnt/settings/security.append.conf >> /data/security.conf
+    echo "Appending advanced configuration snippet to security.conf."
+    if [[ $DETECTED_SECAPPENDFILE == true ]]; then
+        echo "WARN: advanced configuration snippet may fail to be applied to user provided security.conf file."
     fi
 fi
 
