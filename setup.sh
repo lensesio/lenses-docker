@@ -216,6 +216,9 @@ if [[ -f /mnt/settings/security.append.conf ]]; then
     fi
 fi
 
+# Clear empty values (just in case)
+sed '/^\s*[^=]*=\s*$/d' -i /data/lenses.conf /data/security.conf
+
 # We created all need files. Set a more permissive umask for data and logs
 umask 0027
 
