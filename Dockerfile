@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 # Install lenses
 ARG AD_UN
 ARG AD_PW
-ARG AD_URL=https://archive.landoop.com/lenses/1.1/lenses-1.1.3-linux64.tar.gz
+ARG AD_URL=https://archive.landoop.com/lenses/2.0/lenses-2.0-linux64.tar.gz
 RUN wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
     && tar xf /lenses.tgz -C /opt \
     && rm /lenses.tgz
@@ -31,8 +31,14 @@ RUN mkdir -p /opt/landoop/ \
     && tar xf /fda.tgz -C /opt/landoop \
     && rm /fda.tgz
 
-ADD setup.sh debug-setup.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
+# Add fastdata-sd
+ARG FASTDATA_SD_URL=https://archive.landoop.com/tools/fastdata-sd/fastdata-sd.tar.gz
+RUN wget "$FASTDATA_SD_URL" -O /fdsd.tgz \
+    && tar xf /fdsd.tgz -C /usr/local/bin \
+    && rm /fdsd.tgz
+
+ADD setup.sh debug-setup.sh service-discovery.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh /usr/local/bin/service-discovery.sh
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT

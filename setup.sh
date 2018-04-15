@@ -35,6 +35,12 @@ for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
     echo "$fileSecret"
 done
 
+# Run fastdata-sd
+/usr/local/bin/service-discovery.sh
+if [[ -f /tmp/service-discovery ]]; then
+    source /tmp/service-discovery
+fi
+
 # Check for important settings that aren't explicitly set
 [[ -z $LENSES_PORT ]] \
     && echo "LENSES_PORT=9991 is not set."
