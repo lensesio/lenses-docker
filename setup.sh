@@ -60,7 +60,13 @@ fi
 [[ -z $LENSES_SECURITY_USERS ]] \
     && echo "LENSES_SECURITY_USERS is not set."
 
-[[ -z $LENSES_SQL_STATE_DIR ]] && export LENSES_SQL_STATE_DIR=/data/kafka-streams-state
+if [[ -z $LENSES_SQL_STATE_DIR ]]; then
+    if [[ -z $LENSES_SQL_EXECUTION_MODE ]] || [[ $LENSES_SQL_EXECUTION_MODE == IN_PROC ]]; then
+        export LENSES_SQL_STATE_DIR=/data/kafka-streams-state
+    elif [[ $LENSES_SQL_EXECUTION_MODE == CONNECT ]]; then
+        export LENSES_SQL_STATE_DIR=/tmp/lenses-kafka-streams-state
+    fi
+fi
 
 # Set logging
 sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
