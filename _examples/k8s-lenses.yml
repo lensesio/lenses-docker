@@ -19,19 +19,28 @@ spec:
       - name: LENSES_KAFKA_BROKERS
         value: PLAINTEXT://kafka:9092
       - name: LENSES_ZOOKEEPER_HOSTS
-        value: kafka:2181
+        value: |
+          [
+            {url: "kafka:2181", jmx: "kafka:9585"}
+          ]
       - name: LENSES_SCHEMA_REGISTRY_URLS
-        value: http://kafka:8081
+        value: |
+          [
+            {url: "http://kafka:8081", jmx: "kafka:9582"}
+          ]
       - name: LENSES_CONNECT_CLUSTERS
-        value: '[{name: "dev", url: "http://kafka:8083", statuses: "connect-statuses", configs: "connect-configs", offsets: "connect-offsets"}]'
-      - name: LENSES_JMX_BROKERS
-        value: kafka:9581
-      - name: LENSES_JMX_SCHEMA_REGISTRY
-        value: kafka:9582
-      - name: LENSES_JMX_CONNECT
-        value: '[{dev: "kafka:9584"}]'
-      - name: LENSES_JMX_ZOOKEEPERS
-        value: kafka:9585
+        value: |
+          [
+            {
+              name: "dev",
+              urls: [
+                {url: "http://kafka:8083", jmx: "kafka:9584"}
+              ],
+              statuses: "connect-statuses",
+              configs: "connect-configs",
+              offsets: "connect-offsets"
+            }
+          ]
       - name: LENSES_SECURITY_MODE
         value: BASIC
       - name: LENSES_HEAP_OPTS

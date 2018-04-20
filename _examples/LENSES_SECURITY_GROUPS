@@ -1,0 +1,4 @@
+[
+  {"name": "adminGroup", "roles": ["admin", "write", "read"]},
+  {"name": "readGroup",  "roles": ["read"]}
+]

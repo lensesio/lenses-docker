@@ -19,7 +19,7 @@ to create a new minikube cluster.
     kubectl create -f k8s-kafka.yml
     
     # Create Secrets (remember to add license.json to this directory)
-    kubectl create secret generic lenses-secrets --from-file=./LENSES_SECURITY_USERS --from-file=./license.json
+    kubectl create secret generic lenses-secrets --from-file=./LENSES_SECURITY_USERS --from-file=./LENSES_SECURITY_GROUPS --from-file=./license.json
     
     # Create Lenses (needs a few seconds to start)
     kubectl create -f k8s-lenses.yml
