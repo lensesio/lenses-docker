@@ -4,10 +4,16 @@ This is the official image of Landoop’s Lenses for Apache Kafka software.
 
 Lenses is a Streaming Data Management Platform. It enhances Kafka with a web user interface and vital enterprise capabilities that enable engineering and data teams to query real time data, create and monitor Kafka topologies with rich integrations to other systems and gain operational awareness of their clusters.
 
-Please visit our [website](https://www.landoop.com/) or the [documentation pages](https://lenses.stream) to learn more.
+Please visit our [website](https://www.landoop.com/) or the [documentation pages](https://lenses.stream/install_setup/docker/index.html) to learn more.
 
 
 ## The Docker Image
+
+**Please check out
+the [docker image documentation at lenses.stream](https://lenses.stream/install_setup/docker/index.html)
+for the most recent docs and the complete set of features, settings and tweak
+knobs.**
+
 
 This image is aimed for our enterprise clients, though anyone with a free developer license may use it. Visit our [download page](https://www.landoop.com/downloads/) to get a free developer license or an enterprise trial.
 Only Lenses is included in this docker. Our development environment image, which additionally includes Kafka, Connect, Schema Registry and our open-source Stream Reactor collection of connectors can be found as `landoop/kafka-lenses-dev`.
@@ -29,32 +35,50 @@ A brief example of a docker-compose file to setup Lenses, would be:
 version: '2'
 services:
   lenses:
-    image: landoop/lenses
+    image: landoop/lenses:2.0
     environment:
       LENSES_PORT: 9991
       LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
-      LENSES_ZOOKEEPER_HOSTS: "zookeeper.1.url:2181,zookeeper.2.url:2181/znode"
-      LENSES_SCHEMA_REGISTRY_URLS: "http://schema.registry.1.url:8081,http://schema.registry.2.url:8081"
-      LENSES_CONNECT_CLUSTERS: '[{name: "production", url: "http://connect.worker.1.url:8083,http://connect.worker.2.url:8083", statuses: "connect-statuses", configs: "connect-configs", offsets: "connect-offsets"}]'
-      # For JMX you need to enumerate all your instances. We are working to improve this. You can skip the brokers (we autodetect them).
-      LENSES_JMX_BROKERS: "broker.1.url:9581,broker.2.url:9581,broker.3.url:9581"
-      LENSES_JMX_SCHEMA_REGISTRY: "schema.registry.1.url:9582,schema.registry.2.url:9582"
-      LENSES_JMX_ZOOKEEPERS: "zookeeper.1.url:9585,zookeeper.2.url,zookeeper.1.url:9585,zookeeper.3.url:9585"
-      LENSES_JMX_CONNECT: '[{production: "connect.worker.1.url:9584,connect.worker.2.url:9584,connect.worker.3.url:9584"}]'
+      LENSES_ZOOKEEPER_HOSTS: |
+        [
+          {url:"zookeeper.1.url:2181", jmx:"zookeeper.1.url:9585"},
+          {url:"zookeeper.2.url:2181", jmx:"zookeeper.2.url:9585"}
+        ]
+      LENSES_SCHEMA_REGISTRY_URLS: |
+        [
+          {url:"http://schema.registry.1.url:8081",jmx:"schema.registry.1.url:9582"},
+          {url:"http://schema.registry.2.url:8081",jmx:"schema.registry.2.url:9582"}
+        ]
+      LENSES_CONNECT_CLUSTERS: |
+        [
+          {
+            name:"data_science",
+            urls: [
+              {url:"http://connect.worker.1.url:8083",jmx:"connect.worker.1.url:9584"},
+              {url:"http://connect.worker.2.url:8083",jmx:"connect.worker.2.url:9584"}
+            ],
+            statuses:"connect-statuses-cluster-a",
+            configs:"connect-configs-cluster-a",
+            offsets:"connect-offsets-cluster-a"
+          }
+        ]
       LENSES_SECURITY_MODE: BASIC
       # Secrets can also be passed as files. Check _examples/
+      LENSES_SECURITY_GROUPS: |
+        [
+          {"name": "adminGroup", "roles": ["admin", "write", "read"]},
+          {"name": "readGroup",  "roles": ["read"]}
+        ]
       LENSES_SECURITY_USERS: |
         [
-          {"username": "admin", "password": "admin", "displayname": "Lenses Admin", "roles": ["admin", "write", "read"]},
-          {"username": "writer", "password": "writer", "displayname": "Lenses Writer", "roles": ["read", "write"]},
-          {"username": "reader", "password": "reader", "displayname": "Lenses Reader", "roles": ["read"]},
-          {"username": "nodata", "password": "nodata", "displayname": "Lenses NoData", "roles": ["nodata"]}
+          {"username": "admin", "password": "admin", "displayname": "Lenses Admin", "groups": ["adminGroup"]},
+          {"username": "read", "password": "read", "displayname": "Read Only", "groups": ["readGroup"]}
         ]
     ports:
       - 9991:9991
+      - 9102:9102
     volumes:
       - ./license.json:/license.json
-    # This is only need in some cases, where you run docker on a server that also hosts a service from the Kafka cluster
     network_mode: host
 ```
 
