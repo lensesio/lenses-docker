@@ -43,22 +43,22 @@ fi
 
 # Check for important settings that aren't explicitly set
 [[ -z $LENSES_PORT ]] \
-    && echo "LENSES_PORT=9991 is not set."
+    && echo "LENSES_PORT is not set via env var or individual file."
 
 [[ -z $LENSES_KAFKA_BROKERS ]] \
-    && echo "LENSES_KAFKA_BROKERS is not set."
+    && echo "LENSES_KAFKA_BROKERS is not set via env var or individual file."
 
 [[ -z $LENSES_ZOOKEEPER_HOSTS ]] \
-    && echo "LENSES_ZOOKEEPERS is not set."
+    && echo "LENSES_ZOOKEEPERS is not set via env var or individual file."
 
 [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  \
-    && echo "LENSES_SCHEMA_REGISTRY_URLS is not set."
+    && echo "LENSES_SCHEMA_REGISTRY_URLS is not set via env var or individual file."
 
 [[ -z $LENSES_CONNECT_CLUSTERS ]] \
-    && echo "LENSES_CONNECT_CLUSTERS is not set."
+    && echo "LENSES_CONNECT_CLUSTERS is not set via env var or individual file."
 
 [[ -z $LENSES_SECURITY_USERS ]] \
-    && echo "LENSES_SECURITY_USERS is not set."
+    && echo "LENSES_SECURITY_USERS is not set via env var or individual file."
 
 if [[ -z $LENSES_SQL_STATE_DIR ]]; then
     if [[ -z $LENSES_SQL_EXECUTION_MODE ]] || [[ $LENSES_SQL_EXECUTION_MODE == IN_PROC ]]; then

@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
 # Install lenses
 ARG AD_UN
 ARG AD_PW
-ARG AD_URL=https://archive.landoop.com/lenses/2.0/lenses-2.0.6-linux64.tar.gz
+ARG AD_URL=https://archive.landoop.com/lenses/2.0/lenses-2.0.7-linux64.tar.gz
 RUN wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
     && tar xf /lenses.tgz -C /opt \
     && rm /lenses.tgz
