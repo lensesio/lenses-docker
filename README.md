@@ -1,11 +1,20 @@
 # Lenses™ for Apache Kafka
 
-This is the official image of Landoop’s Lenses for Apache Kafka software.
+This is the official Docker for [Lenses](http://landoop.com/kafka-lenses) that enables you to:
 
-Lenses is a Streaming Data Management Platform. It enhances Kafka with a web user interface and vital enterprise capabilities that enable engineering and data teams to query real time data, create and monitor Kafka topologies with rich integrations to other systems and gain operational awareness of their clusters.
+* View and Query Kafka Topic Data (Avro & JSon) - Browse and query with Lenses SQL
+* View data topologies and monitor every aspect of your Kafka cluster
+* View and manage your Data Schemas
+* Build and monitor ETL pipelines with open source Kafka Connectors
+* Execute KStreams processors instrumented in SQL in Kubernetes or Connector workers
+* Set up alerting and external notifications on liveniness of streaming systems
+* Data governance: Auditing on all actions, data lineage & multi-tenancy
+* Fine-grained security. Role based access with LDAP support
+* Manage Quotas, ACLs
 
-Please visit our [website](https://www.landoop.com/) or the [documentation pages](https://lenses.stream/install_setup/docker/index.html) to learn more.
+As a state-less application lenses fits naturally in containers and run on **Kubernetes** or **Openshift**. It integrates and helps you instrument and view your streaming data pipelines; as well as operate them with confidence !
 
+The documentation is always available at https://lenses.stream and data engineering talk is on [Slack](https://launchpass.com/landoop-community)
 
 ## The Docker Image
 
