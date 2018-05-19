@@ -33,3 +33,18 @@ select yn in "Yes" "No"; do
     esac
 done
 
+echo "Install lenses-cli to access Lenses from the command line?"
+select yn in "Yes" "No"; do
+    case $yn in
+        Yes)
+            wget https://archive.landoop.com/tools/lenses-cli/2.0/lenses-cli-linux-amd64-latest.tar.gz \
+                 -O /tmp/lenses-cli.tgz
+            tar xf /tmp/lenses-cli.tgz --strip-components=1 -C /tmp/
+            cp /tmp/lenses-cli /usr/local/bin/
+            echo "Installed at '/usr/local/bin/lenses-cli'."
+            echo "Run with: 'lenses-cli'"
+            break;;
+        No)
+            break;;
+    esac
+done
