@@ -301,6 +301,19 @@ for var in $(printenv | grep -E "^FILE_" | sed -e 's/=.*//'); do
                 unset FILE_KRB5
             fi
             ;;
+        FILE_KEYTAB)
+            if [[ -n $FILE_KEYTAB ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILE_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILE_KEYTAB" > /data/keytab
+                chmod 400 /data/keytab
+                echo "File created. Sha256sum: $(sha256sum /data/keytab)"
+                unset FILE_KEYTAB
+            fi
+            ;;
+
         *)
             echo "Unknown file variable $var was provided but won't be used."
             ;;
@@ -383,7 +396,8 @@ if [[ "$C_UID" == 0 ]]; then
           /data/keystore.jks \
           /data/truststore.jks \
           /data/jaas.conf \
-          /data/krb5.conf
+          /data/krb5.conf \
+          /data/keytab
     C_SUCMD=/usr/sbin/gosu
     C_SUID="nobody:nogroup"
 else
