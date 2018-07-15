@@ -2,6 +2,23 @@
 
 umask 0077
 
+TRUE_REG='^([tT][rR][uU][eE]|[yY]|[yY][eE][sS]|1)$'
+FALSE_REG='^([fF][aA][lL][sS][eE]|[nN]|[nN][oO]|0)$'
+
+DEBUG_SCRIPT=${DEBUG_SCRIPT:-false}
+if [[ $DEBUG_SCRIPT =~ $TRUE_REG ]]; then
+    set -o xtrace
+fi
+
+STRICT_SCRIPT=${STRICT_SCRIPT:-false}
+if [[ $STRICT_SCRIPT =~ $FALSE_REG ]]; then
+    set +o errexit
+    set +o nounset
+    set +o pipefail
+fi
+
+PAUSE_EXEC=${PAUSE_EXEC:-false}
+
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS"
 OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_BROKERS LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
@@ -21,9 +38,11 @@ OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_SECURITY_GROUPS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_SERVICE_ACCOUNTS"
 OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
-OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
 
-# Load settings from files
+# LOAD settings from files
 for fileSetting in $(find /mnt/settings -name "LENSES_*"); do
     fileSettingClean="$(basename "$fileSetting")"
     export "${fileSettingClean}"="$(cat "$fileSetting")"
@@ -36,6 +55,14 @@ for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
     export "${fileSecretClean}"="$(cat "$fileSecret")"
     echo "$fileSecret"
 done
+# Docker Swarm (older versions) only export to /run/secrets
+if [[ -d /run/secrets ]]; then
+    for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
+        fileSecretClean="$(basename "$fileSecret")"
+        export "${fileSecretClean}"="$(cat "$fileSecret")"
+        echo "$fileSecret"
+    done
+fi
 
 # Run fastdata-sd
 /usr/local/bin/service-discovery.sh
@@ -182,6 +209,104 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 done
 
+# Find side files (SSL trust/key stores, jaas, krb5) shared via
+# mounts/secrets and load them as temp env vars
+BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
+# Mounts
+for fileSetting in $(find /mnt/settings -name "FILE_*"); do
+    ENCODE=cat
+    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+        ENCODE="base64"
+    fi
+    fileSettingClean="$(basename "$fileSetting")"
+    export "${fileSettingClean}"="$($ENCODE "$fileSetting")"
+    echo "Found $fileSetting"
+done
+# Secret mounts
+for fileSecret in $(find /mnt/secrets -name "FILE_*"); do
+    ENCODE=cat
+    if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+        ENCODE="base64"
+    fi
+    fileSecretClean="$(basename "$fileSecret")"
+    export "${fileSecretClean}"="$($ENCODE "$fileSecret")"
+    echo "Found $fileSecret"
+done
+# Docker Swarm (older versions) only export to /run/secrets
+if [[ -d /run/secrets ]]; then
+    for fileSecret in $(find /mnt/secrets -name "FILE_*"); do
+        ENCODE=cat
+        if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+            ENCODE="base64"
+        fi
+        fileSecretClean="$(basename "$fileSecret")"
+        export "${fileSecretClean}"="$($ENCODE "$fileSecret")"
+        echo "Found $fileSecret"
+    done
+fi
+# Process them
+for var in $(printenv | grep -E "^FILE_" | sed -e 's/=.*//'); do
+    case "$var" in
+        FILE_SSL_KEYSTORE)
+            if [[ -n $FILE_SSL_KEYSTORE ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILE_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILE_SSL_KEYSTORE" > /data/keystore.jks
+                chmod 400 /data/keystore.jks
+                echo "lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
+                echo "lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
+                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
+                unset FILE_SSL_KEYSTORE
+            fi
+            ;;
+        FILE_SSL_TRUSTSTORE)
+            if [[ -n $FILE_SSL_TRUSTSTORE ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILE_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILE_SSL_TRUSTSTORE" > /data/truststore.jks
+                chmod 400 /data/truststore.jks
+                echo "lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
+                echo "lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
+                echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
+                unset FILE_SSL_TRUSTSTORE
+            fi
+            ;;
+        FILE_JAAS)
+            if [[ -n $FILE_JAAS ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILE_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILE_JAAS" > /data/jaas.conf
+                chmod 400 /data/jaas.conf
+                export LENSES_OPTS="$LENSES_OPTS -Djava.security.auth.login.config=/data/jaas.conf"
+                echo "File created. Sha256sum: $(sha256sum /data/jaas.conf)"
+                unset FILE_JAAS
+            fi
+            ;;
+        FILE_KRB5)
+            if [[ -n $FILE_KRB5 ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILE_KRB5" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILE_KRB5" > /data/krb5.conf
+                chmod 400 /data/krb5.conf
+                export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
+                echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
+                unset FILE_KRB5
+            fi
+            ;;
+        *)
+            echo "Unknown file variable $var was provided but won't be used."
+            ;;
+    esac
+done
+
 # # Fix for case sensitive LDAP setting:
 # sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
 
@@ -248,7 +373,17 @@ C_SUID=""
 if [[ "$C_UID" == 0 ]]; then
     echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
     echo "and drop priviliges."
-    chown -R nobody:nogroup /data/log /data/kafka-streams-state /data/license.json /data/lenses.conf /data/security.conf /data/logback.xml
+    chown -R -f nobody:nogroup \
+          /data/log \
+          /data/kafka-streams-state \
+          /data/license.json \
+          /data/lenses.conf \
+          /data/security.conf \
+          /data/logback.xml \
+          /data/keystore.jks \
+          /data/truststore.jks \
+          /data/jaas.conf \
+          /data/krb5.conf
     C_SUCMD=/usr/sbin/gosu
     C_SUID="nobody:nogroup"
 else
@@ -269,5 +404,11 @@ fi
 
 # Enable fastdata_agent for exporting metrics to prometheus
 export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=9102:opt/landoop/fast_data_monitoring/client.yml"
+
+# If PAUSE_EXEC is set, we wait for 10 minutes before starting lenses.
+# This way we can go into the container and debug things before it exits.
+if [[ $PAUSE_EXEC =~ $TRUE_REG ]]; then
+    sleep 600
+fi
 
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
