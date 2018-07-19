@@ -1,4 +1,4 @@
-# Lenses™ for Apache Kafka
+# Lenses® for Apache Kafka
 
 This is the official Docker for [Lenses](http://landoop.com/kafka-lenses) that enables you to:
 
