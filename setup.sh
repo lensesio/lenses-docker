@@ -213,7 +213,7 @@ done
 # mounts/secrets and load them as temp env vars
 BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
 # Mounts
-for fileSetting in $(find /mnt/settings -name "FILE_*"); do
+for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
     ENCODE=cat
     if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
@@ -223,7 +223,7 @@ for fileSetting in $(find /mnt/settings -name "FILE_*"); do
     echo "Found $fileSetting"
 done
 # Secret mounts
-for fileSecret in $(find /mnt/secrets -name "FILE_*"); do
+for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
     ENCODE=cat
     if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
@@ -234,7 +234,7 @@ for fileSecret in $(find /mnt/secrets -name "FILE_*"); do
 done
 # Docker Swarm (older versions) only export to /run/secrets
 if [[ -d /run/secrets ]]; then
-    for fileSecret in $(find /mnt/secrets -name "FILE_*"); do
+    for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
         ENCODE=cat
         if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
             ENCODE="base64"
@@ -245,77 +245,77 @@ if [[ -d /run/secrets ]]; then
     done
 fi
 # Process them
-for var in $(printenv | grep -E "^FILE_" | sed -e 's/=.*//'); do
+for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
     case "$var" in
-        FILE_SSL_KEYSTORE)
-            if [[ -n $FILE_SSL_KEYSTORE ]]; then
+        FILECONTENT_SSL_KEYSTORE)
+            if [[ -n $FILECONTENT_SSL_KEYSTORE ]]; then
                 DECODE="cat"
-                if ! echo -n "$FILE_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                if ! echo -n "$FILECONTENT_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILE_SSL_KEYSTORE" > /data/keystore.jks
+                $DECODE <<< "$FILECONTENT_SSL_KEYSTORE" > /data/keystore.jks
                 chmod 400 /data/keystore.jks
                 echo "lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
                 echo "lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
                 echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-                unset FILE_SSL_KEYSTORE
+                unset FILECONTENT_SSL_KEYSTORE
             fi
             ;;
-        FILE_SSL_TRUSTSTORE)
-            if [[ -n $FILE_SSL_TRUSTSTORE ]]; then
+        FILECONTENT_SSL_TRUSTSTORE)
+            if [[ -n $FILECONTENT_SSL_TRUSTSTORE ]]; then
                 DECODE="cat"
-                if ! echo -n "$FILE_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                if ! echo -n "$FILECONTENT_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILE_SSL_TRUSTSTORE" > /data/truststore.jks
+                $DECODE <<< "$FILECONTENT_SSL_TRUSTSTORE" > /data/truststore.jks
                 chmod 400 /data/truststore.jks
                 echo "lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
                 echo "lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
                 echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
-                unset FILE_SSL_TRUSTSTORE
+                unset FILECONTENT_SSL_TRUSTSTORE
             fi
             ;;
-        FILE_JAAS)
-            if [[ -n $FILE_JAAS ]]; then
+        FILECONTENT_JAAS)
+            if [[ -n $FILECONTENT_JAAS ]]; then
                 DECODE="cat"
-                if ! echo -n "$FILE_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                if ! echo -n "$FILECONTENT_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILE_JAAS" > /data/jaas.conf
+                $DECODE <<< "$FILECONTENT_JAAS" > /data/jaas.conf
                 chmod 400 /data/jaas.conf
                 export LENSES_OPTS="$LENSES_OPTS -Djava.security.auth.login.config=/data/jaas.conf"
                 echo "File created. Sha256sum: $(sha256sum /data/jaas.conf)"
-                unset FILE_JAAS
+                unset FILECONTENT_JAAS
             fi
             ;;
-        FILE_KRB5)
-            if [[ -n $FILE_KRB5 ]]; then
+        FILECONTENT_KRB5)
+            if [[ -n $FILECONTENT_KRB5 ]]; then
                 DECODE="cat"
-                if ! echo -n "$FILE_KRB5" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                if ! echo -n "$FILECONTENT_KRB5" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILE_KRB5" > /data/krb5.conf
+                $DECODE <<< "$FILECONTENT_KRB5" > /data/krb5.conf
                 chmod 400 /data/krb5.conf
                 export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
                 echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
-                unset FILE_KRB5
+                unset FILECONTENT_KRB5
             fi
             ;;
-        FILE_KEYTAB)
-            if [[ -n $FILE_KEYTAB ]]; then
+        FILECONTENT_KEYTAB)
+            if [[ -n $FILECONTENT_KEYTAB ]]; then
                 DECODE="cat"
-                if ! echo -n "$FILE_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                if ! echo -n "$FILECONTENT_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILE_KEYTAB" > /data/keytab
+                $DECODE <<< "$FILECONTENT_KEYTAB" > /data/keytab
                 chmod 400 /data/keytab
                 echo "File created. Sha256sum: $(sha256sum /data/keytab)"
-                unset FILE_KEYTAB
+                unset FILECONTENT_KEYTAB
             fi
             ;;
 
         *)
-            echo "Unknown file variable $var was provided but won't be used."
+            echo "Unknown filecontent variable $var was provided but won't be used."
             ;;
     esac
 done
