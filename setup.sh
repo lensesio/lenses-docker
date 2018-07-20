@@ -154,7 +154,7 @@ function process_variable {
     fi
 
     # Else try to detect if we need quotes
-    if [[ "${!var}" =~ .*[?:,()*/|].* ]]; then
+    if [[ "${!var}" =~ .*[?:,()*/|#!].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> "$config_file"
     else
@@ -214,7 +214,7 @@ done
 BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
 # Mounts
 for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
-    ENCODE=cat
+    ENCODE="cat"
     if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
@@ -224,7 +224,7 @@ for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
 done
 # Secret mounts
 for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
-    ENCODE=cat
+    ENCODE="cat"
     if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
@@ -235,7 +235,7 @@ done
 # Docker Swarm (older versions) only export to /run/secrets
 if [[ -d /run/secrets ]]; then
     for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
-        ENCODE=cat
+        ENCODE="cat"
         if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
             ENCODE="base64"
         fi
