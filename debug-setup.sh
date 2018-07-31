@@ -37,7 +37,7 @@ echo "Install lenses-cli to access Lenses from the command line?"
 select yn in "Yes" "No"; do
     case $yn in
         Yes)
-            wget https://archive.landoop.com/tools/lenses-cli/2.0/lenses-cli-linux-amd64-latest.tar.gz \
+            wget https://archive.landoop.com/tools/lenses-cli/2.1/lenses-cli-linux-amd64-latest.tar.gz \
                  -O /tmp/lenses-cli.tgz
             tar xf /tmp/lenses-cli.tgz --strip-components=1 -C /tmp/
             cp /tmp/lenses-cli /usr/local/bin/
