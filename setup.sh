@@ -11,10 +11,10 @@ if [[ $DEBUG_SCRIPT =~ $TRUE_REG ]]; then
 fi
 
 STRICT_SCRIPT=${STRICT_SCRIPT:-false}
-if [[ $STRICT_SCRIPT =~ $FALSE_REG ]]; then
-    set +o errexit
-    set +o nounset
-    set +o pipefail
+if [[ $STRICT_SCRIPT =~ $TRUE_REG ]]; then
+    set -o errexit
+    set -o nounset
+    set -o pipefail
 fi
 
 PAUSE_EXEC=${PAUSE_EXEC:-false}
