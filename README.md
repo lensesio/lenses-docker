@@ -19,7 +19,7 @@ The documentation is always available at https://lenses.stream and data engineer
 ## The Docker Image
 
 **Please check out
-the [docker image documentation at lenses.stream](https://lenses.stream/install_setup/docker/index.html)
+the [docker image documentation at lenses.stream](https://lenses.stream/install_setup/deployment-options/docker-deployment.html)
 for the most recent docs and the complete set of features, settings and tweak
 knobs.**
 
