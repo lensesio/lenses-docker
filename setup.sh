@@ -342,12 +342,23 @@ if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
     elif [[ ! -z "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
         echo "$LICENSE" >> /data/license.json
     elif [[ ! -z "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
-        wget "$LICENSE_URL" -O /data/license.json
+        set +o errexit
+        __p_lver() {
+            source /build.info
+            echo "$LENSES_VERSION"
+        }
+        __p_bcom() {
+            source /build.info
+            echo "${BUILD_COMMIT::8}"
+        }
+        wget --user-agent="Lenses Docker (Lenses $(__p_lver); Commit: $(__p_bcom))" \
+             "$LICENSE_URL" -O /data/license.json
         if [[ $? -ne 0 ]]; then
             echo "ERROR! Could not download license. Maybe the link was wrong or the license expired?"
             echo "       Please check and try again. If the problem persists contact Landoop."
             exit 1
         fi
+        if [[ $STRICT_SCRIPT =~ $TRUE_REG ]]; then set -o errexit; fi
     elif [[ -f /data/license.json ]]; then
         echo
     else
