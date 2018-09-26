@@ -3,8 +3,10 @@ MAINTAINER Marios Andreopoulos <marios@landoop.com>
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y \
-        wget \
+        curl \
         gosu \
+        netcat \
+        wget \
     && rm -rf /var/lib/apt/lists/* \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
     && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
@@ -39,6 +41,7 @@ RUN wget "$FASTDATA_SD_URL" -O /fdsd.tgz \
 
 ADD setup.sh debug-setup.sh service-discovery.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh /usr/local/bin/service-discovery.sh
+COPY /filesystem /
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT

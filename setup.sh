@@ -17,7 +17,7 @@ if [[ $STRICT_SCRIPT =~ $TRUE_REG ]]; then
     set -o pipefail
 fi
 
-PAUSE_EXEC=${PAUSE_EXEC:-false}
+WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS"
 OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
@@ -434,6 +434,18 @@ export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fa
 # This way we can go into the container and debug things before it exits.
 if [[ $PAUSE_EXEC =~ $TRUE_REG ]]; then
     sleep 600
+fi
+
+if [[ -n $WAIT_SCRIPT ]]; then
+    if [[ -f $WAIT_SCRIPT ]]; then
+        eval $WAIT_SCRIPT
+    elif [[ -f /usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT ]]; then
+        WAIT_SCRIPT=/usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT
+        eval $WAIT_SCRIPT
+    else
+        echo "Wait script not found. Waiting for 120 seconds."
+        sleep 120
+    fi
 fi
 
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
