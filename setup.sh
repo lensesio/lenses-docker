@@ -43,6 +43,9 @@ OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_A
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO"
+
 
 # LOAD settings from files
 for fileSetting in $(find /mnt/settings -name "LENSES_*"); do
@@ -149,6 +152,10 @@ function process_variable {
         if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
             echo "${conf}=********"
             unset "${var}"
+        # Special case, connect clusters may include a password.
+        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ]] && grep -sq password <<<"${!var}"; then
+            echo "${conf}=********"
+            unset "${var}"
         else
             echo "${conf}=${!var}"
         fi
@@ -217,7 +224,7 @@ BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-
 # Mounts
 for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
     ENCODE="cat"
-    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+    if tr -d '\n' <<<"$fileSetting" | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
     fileSettingClean="$(basename "$fileSetting")"
@@ -227,7 +234,7 @@ done
 # Secret mounts
 for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
     ENCODE="cat"
-    if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+    if tr -d '\n' <<<"$fileSetting" | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
     fileSecretClean="$(basename "$fileSecret")"
@@ -238,7 +245,7 @@ done
 if [[ -d /run/secrets ]]; then
     for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
         ENCODE="cat"
-        if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+        if tr -d '\n' <<<"$fileSecret" | grep -vsqE "$BASE64_REGEXP" ; then
             ENCODE="base64"
         fi
         fileSecretClean="$(basename "$fileSecret")"
@@ -328,14 +335,14 @@ done
 # If not explicit security file set auto-generated:
 DETECTED_SECAPPENDFILE=false
 if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
-    echo -e "\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
+    echo -e "\\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
 else
     DETECTED_SECAPPENDFILE=true
 fi
 
 # If not explicit license path
 if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
-    echo -e "\nlenses.license.file=/data/license.json" >> /data/lenses.conf
+    echo -e "\\nlenses.license.file=/data/license.json" >> /data/lenses.conf
 # Take care of  license path
     if [[ -f /license.json ]]; then
         cp /license.json /data/license.json
@@ -355,6 +362,7 @@ if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
         }
         wget --user-agent="Lenses Docker (Lenses $(__p_lver); Commit: $(__p_bcom))" \
              "$LICENSE_URL" -O /data/license.json
+        # shellcheck disable=SC2181
         if [[ $? -ne 0 ]]; then
             echo "ERROR! Could not download license. Maybe the link was wrong or the license expired?"
             echo "       Please check and try again. If the problem persists contact Landoop."
@@ -440,10 +448,10 @@ fi
 
 if [[ -n $WAIT_SCRIPT ]]; then
     if [[ -f $WAIT_SCRIPT ]]; then
-        eval $WAIT_SCRIPT
+        eval "$WAIT_SCRIPT"
     elif [[ -f /usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT ]]; then
-        WAIT_SCRIPT=/usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT
-        eval $WAIT_SCRIPT
+        WAIT_SCRIPT="/usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT"
+        eval "$WAIT_SCRIPT"
     else
         echo "Wait script not found. Waiting for 120 seconds."
         sleep 120
