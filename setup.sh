@@ -247,7 +247,7 @@ done
 for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
     ENCODE="cat"
     # shellcheck disable=SC2002
-    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+    if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
     fileSecretClean="$(basename "$fileSecret")"
@@ -260,7 +260,7 @@ if [[ -d /run/secrets ]]; then
     for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
         ENCODE="cat"
         # shellcheck disable=SC2002
-        if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+        if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
             ENCODE="base64"
         fi
         fileSecretClean="$(basename "$fileSecret")"
