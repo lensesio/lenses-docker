@@ -135,6 +135,8 @@ function process_variable {
     conf="${conf//_/.}"
 
     # If setting needs to be quoted, write with quotes
+    # This is ok because we need to pattern match with the spaces, so ignore sc
+    # shellcheck disable=SC2076
     if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
         echo "${conf}=\"${!var}\"" >> "$config_file"
         if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
@@ -147,6 +149,7 @@ function process_variable {
     fi
 
     # If settings must not have quotes, write without quotes
+    # shellcheck disable=SC2076
     if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
         echo "${conf}=${!var}" >> "$config_file"
         if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
@@ -169,6 +172,7 @@ function process_variable {
     else
         echo "${conf}=${!var}" >> "$config_file"
     fi
+    # shellcheck disable=SC2076
     if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
         echo "${conf}=********"
         unset "${var}"
@@ -202,6 +206,7 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 
     # If _OPTS, export them
+    # shellcheck disable=SC2076
     if [[ "$OPTS_JVM" =~ " $var " ]]; then
         export "${var}"="${!var}"
         continue
@@ -222,9 +227,15 @@ done
 # mounts/secrets and load them as temp env vars
 BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
 # Mounts
+# This may be fragile according to shellcheck but it's ok for our use case and
+# we can require from users to not have filenames with spaces, etc.
+# shellcheck disable=SC2044
 for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
     ENCODE="cat"
-    if tr -d '\n' <<<"$fileSetting" | grep -vsqE "$BASE64_REGEXP" ; then
+    # Do not be smart here and feed fileSetting into tr, because that way
+    # you get an extra line at the end, which breaks the base64 detection
+    # shellcheck disable=SC2002
+    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
     fileSettingClean="$(basename "$fileSetting")"
@@ -232,9 +243,11 @@ for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
     echo "Found $fileSetting"
 done
 # Secret mounts
+# shellcheck disable=SC2044
 for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
     ENCODE="cat"
-    if tr -d '\n' <<<"$fileSetting" | grep -vsqE "$BASE64_REGEXP" ; then
+    # shellcheck disable=SC2002
+    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
         ENCODE="base64"
     fi
     fileSecretClean="$(basename "$fileSecret")"
@@ -243,9 +256,11 @@ for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
 done
 # Docker Swarm (older versions) only export to /run/secrets
 if [[ -d /run/secrets ]]; then
+    # shellcheck disable=SC2044
     for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
         ENCODE="cat"
-        if tr -d '\n' <<<"$fileSecret" | grep -vsqE "$BASE64_REGEXP" ; then
+        # shellcheck disable=SC2002
+        if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
             ENCODE="base64"
         fi
         fileSecretClean="$(basename "$fileSecret")"
