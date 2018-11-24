@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+echo "Initializing environment —docker setup script."
+
 umask 0077
 
 TRUE_REG='^([tT][rR][uU][eE]|[yY]|[yY][eE][sS]|1)$'
@@ -103,8 +105,9 @@ if [[ -z $LENSES_SQL_STATE_DIR ]]; then
 fi
 
 # Set logging
-sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
-[[ -z "$LENSES_LOG4J_OPTS" ]] && export LENSES_LOG4J_OPTS="-Dlogback.configurationFile=file:/data/logback.xml"
+if [[ ! -f /data/logback.xml ]]; then
+    sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
+fi
 
 # Check for port availability
 if ! /usr/local/bin/checkport -port "$LENSES_PORT"; then
@@ -392,9 +395,11 @@ if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
 fi
 
 # Append Advanced Configuration Snippet
+DETECTED_LENAPPENDFILE=false
 if [[ -f /mnt/settings/lenses.append.conf ]]; then
     cat /mnt/settings/lenses.append.conf >> /data/lenses.conf
     echo "Appending advanced configuration snippet to lenses.conf"
+    DETECTED_LENAPPENDFILE=true
 fi
 if [[ -f /mnt/settings/security.append.conf ]]; then
     cat /mnt/settings/security.append.conf >> /data/security.conf
@@ -472,6 +477,24 @@ if [[ -n $WAIT_SCRIPT ]]; then
         sleep 120
     fi
 fi
+
+
+# Print information about possible overrides.
+echo "Setup script finished."
+if [[ $DETECTED_LENFILE =~ $TRUE_REG ]]; then
+    echo "You provided a 'lenses.conf' file. Autodetected settings will be ignored."
+fi
+if [[ $DETECTED_SECFILE =~ $TRUE_REG ]]; then
+    echo "You provided a 'security.conf' file. Autodetected security settings will be ignored."
+fi
+if [[ $DETECTED_LENAPPENDFILE =~ $TRUE_REG ]]; then
+    echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
+fi
+if [[ $DETECTED_SECAPPENDFILE =~ $TRUE_REG ]]; then
+    echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
+fi
+echo "Docker environment initialized. Starting Lenses."
+echo "================================================"
 
 cd /data
 exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
