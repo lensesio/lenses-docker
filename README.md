@@ -44,7 +44,7 @@ A brief example of a docker-compose file to setup Lenses, would be:
 version: '2'
 services:
   lenses:
-    image: landoop/lenses:2.0
+    image: landoop/lenses:2.1
     environment:
       LENSES_PORT: 9991
       LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
@@ -115,7 +115,7 @@ Lenses require a license file in order to start. It may be passed to the contain
 
 ---
 
-For more information, please visit our [documentation](https://www.landoop.com/docs/lenses/). Enterprise customers may use the support channels made available to them. Developer Edition users are encouraged to visit our [gitter chat](https://gitter.im/Landoop/support). We are always happy to help and hear from you.
+For more information, please visit our [documentation](https://docs.lenses.io/). Enterprise customers may use the support channels made available to them. Developer Edition users are encouraged to visit our [slack community](https://launchpass.com/landoop-community). We are always happy to help and hear from you.
 
 With respect,
 
