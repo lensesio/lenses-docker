@@ -351,11 +351,12 @@ done
 # sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
 
 # If not explicit security file set auto-generated:
-DETECTED_SECAPPENDFILE=false
+DETECTED_SECCUSTOMFILE=false
 if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
     echo -e "\\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
 else
-    DETECTED_SECAPPENDFILE=true
+    # Setting this to true, so we can give a warning if the user provides a lenses.append.file
+    DETECTED_SECCUSTOMFILE=true
 fi
 
 # If not explicit license path
@@ -401,12 +402,14 @@ if [[ -f /mnt/settings/lenses.append.conf ]]; then
     echo "Appending advanced configuration snippet to lenses.conf"
     DETECTED_LENAPPENDFILE=true
 fi
+DETECTED_SECAPPENDFILE=false
 if [[ -f /mnt/settings/security.append.conf ]]; then
     cat /mnt/settings/security.append.conf >> /data/security.conf
     echo "Appending advanced configuration snippet to security.conf."
-    if [[ $DETECTED_SECAPPENDFILE == true ]]; then
+    if [[ $DETECTED_SECCUSTOMFILE == true ]]; then
         echo "WARN: advanced configuration snippet may fail to be applied to user provided security.conf file."
     fi
+    DETECTED_SECAPPENDFILE=true
 fi
 
 # Clear empty values (just in case)
@@ -486,6 +489,9 @@ if [[ $DETECTED_LENFILE =~ $TRUE_REG ]]; then
 fi
 if [[ $DETECTED_SECFILE =~ $TRUE_REG ]]; then
     echo "You provided a 'security.conf' file. Autodetected security settings will be ignored."
+fi
+if [[ $DETECTED_SECCUSTOMFILE =~ $TRUE_REG ]]; then
+    echo "You provided a custom location for 'security.conf'. Autodetected security settings may be ignored."
 fi
 if [[ $DETECTED_LENAPPENDFILE =~ $TRUE_REG ]]; then
     echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
