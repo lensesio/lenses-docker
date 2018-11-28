@@ -449,6 +449,21 @@ if [[ "$C_UID" == 0 ]]; then
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab
+    chmod 750 -f \
+          /data/log \
+          /data/kafka-streams-state \
+          /data/plugins \
+          /data/storage
+    chmod 640 -f \
+          /data/license.json \
+          /data/lenses.conf \
+          /data/security.conf \
+          /data/logback.xml \
+          /data/keystore.jks \
+          /data/truststore.jks \
+          /data/jaas.conf \
+          /data/krb5.conf \
+          /data/keytab
     C_SUCMD=/usr/sbin/gosu
     C_SUID="nobody:nogroup"
 else
