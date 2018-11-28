@@ -58,7 +58,7 @@ RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export
 EXPOSE 9991
 
 WORKDIR /
-VOLUME ["/data/kafka-streams-state", "/data/log"]
+VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage"]
 RUN chmod 777 /data
 
 ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]

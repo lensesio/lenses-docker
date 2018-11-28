@@ -21,7 +21,7 @@ fi
 
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
-OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS"
+OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS"
 OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
@@ -96,6 +96,7 @@ fi
 [[ -z $LENSES_SECURITY_USERS ]] \
     && echo "LENSES_SECURITY_USERS is not set via env var or individual file."
 
+# If 'lenses.sql.state.dir' is not explicitly set, set it automatically
 if [[ -z $LENSES_SQL_STATE_DIR ]]; then
     if [[ -z $LENSES_SQL_EXECUTION_MODE ]] || [[ $LENSES_SQL_EXECUTION_MODE == IN_PROC ]]; then
         export LENSES_SQL_STATE_DIR=/data/kafka-streams-state
@@ -108,6 +109,9 @@ fi
 if [[ ! -f /data/logback.xml ]]; then
     sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
 fi
+
+# Set plugins directory if not explicitly set
+export LENSES_PLUGINS_CLASSPATH_OPTS=${LENSES_PLUGINS_CLASSPATH_OPTS:-/data/plugins}
 
 # Check for port availability
 if ! /usr/local/bin/checkport -port "$LENSES_PORT"; then
@@ -430,9 +434,12 @@ C_SUID=""
 if [[ "$C_UID" == 0 ]]; then
     echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
     echo "and drop priviliges."
+    # Directories first, files second, in logical/timeline order
     chown -R -f nobody:nogroup \
           /data/log \
           /data/kafka-streams-state \
+          /data/plugins \
+          /data/storage \
           /data/license.json \
           /data/lenses.conf \
           /data/security.conf \
