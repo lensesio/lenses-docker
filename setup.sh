@@ -50,6 +50,8 @@ OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_I
 
 
 # LOAD settings from files
+# This loop is fragile but we demand filenames that map to env vars anyway
+# shellcheck disable=SC2044
 for fileSetting in $(find /mnt/settings -name "LENSES_*"); do
     fileSettingClean="$(basename "$fileSetting")"
     export "${fileSettingClean}"="$(cat "$fileSetting")"
@@ -57,6 +59,8 @@ for fileSetting in $(find /mnt/settings -name "LENSES_*"); do
 done
 
 # Load secrets from files
+# This loop is fragile but we demand filenames that map to env vars anyway
+# shellcheck disable=SC2044
 for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
     fileSecretClean="$(basename "$fileSecret")"
     export "${fileSecretClean}"="$(cat "$fileSecret")"
@@ -64,6 +68,8 @@ for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
 done
 # Docker Swarm (older versions) only export to /run/secrets
 if [[ -d /run/secrets ]]; then
+    # This loop is fragile but we demand filenames that map to env vars anyway
+    # shellcheck disable=SC2044
     for fileSecret in $(find /mnt/secrets -name "LENSES_*"); do
         fileSecretClean="$(basename "$fileSecret")"
         export "${fileSecretClean}"="$(cat "$fileSecret")"
@@ -286,8 +292,10 @@ for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
                 fi
                 $DECODE <<< "$FILECONTENT_SSL_KEYSTORE" > /data/keystore.jks
                 chmod 400 /data/keystore.jks
-                echo "lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
-                echo "lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks" >> /data/lenses.conf
+                cat <<EOF >>/data/lenses.conf
+lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
+EOF
                 echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
                 unset FILECONTENT_SSL_KEYSTORE
             fi
@@ -300,10 +308,102 @@ for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
                 fi
                 $DECODE <<< "$FILECONTENT_SSL_TRUSTSTORE" > /data/truststore.jks
                 chmod 400 /data/truststore.jks
-                echo "lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
-                echo "lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks" >> /data/lenses.conf
+                cat <<EOF >>/data/lenses.conf
+lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
+lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
+EOF
                 echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
                 unset FILECONTENT_SSL_TRUSTSTORE
+            fi
+            ;;
+        FILECONTENT_SSL_CACERT_PEM)
+            if [[ -n $FILECONTENT_SSL_CACERT_PEM ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_SSL_CACERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_SSL_CACERT_PEM" > /tmp/cacert.pem
+                /opt/lenses/jre8u131/bin/keytool -importcert -noprompt \
+                                                 -keystore /data/truststore.jks \
+                                                 -alias ca \
+                                                 -file /tmp/cacert.pem \
+                                                 -storepass changeit
+                rm -rf /tmp/cacert.pem /tmp/vlxjre
+                chmod 400 /data/truststore.jks
+                cat <<EOF >>/data/lenses.conf
+lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
+lenses.kafka.settings.consumer.ssl.truststore.password=changeit
+lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
+lenses.kafka.settings.producer.ssl.truststore.password=changeit
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
+                unset FILECONTENT_SSL_CACERT_PEM
+            fi
+            ;;
+        FILECONTENT_SSL_CERT_PEM)
+            if [[ -n $FILECONTENT_SSL_CERT_PEM ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_SSL_CERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_SSL_CERT_PEM" > /tmp/cert.pem
+                if [[ -f /tmp/key.pem ]]; then
+                    openssl pkcs12 -export \
+                            -in /tmp/cert.pem -inkey /tmp/key.pem \
+                            -out /tmp/keystore.p12 \
+                            -name service \
+                            -passout pass:changeit
+                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
+                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                                                     -alias service \
+                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
+                    chmod 400 /data/keystore.jks
+                    cat <<EOF >> /data/lenses.conf
+lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.consumer.ssl.keystore.password=changeit
+lenses.kafka.settings.consumer.ssl.key.password=changeit
+
+lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.producer.ssl.keystore.password=changeit
+lenses.kafka.settings.producer.ssl.key.password=changeit
+EOF
+                    echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
+                fi
+                unset FILECONTENT_SSL_CERT_PEM
+            fi
+            ;;
+        FILECONTENT_SSL_KEY_PEM)
+            if [[ -n $FILECONTENT_SSL_KEY_PEM ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_SSL_KEY_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_SSL_KEY_PEM" > /tmp/key.pem
+                if [[ -f /tmp/cert.pem ]]; then
+                    openssl pkcs12 -export \
+                            -in /tmp/cert.pem -inkey /tmp/key.pem \
+                            -out /tmp/keystore.p12 \
+                            -name service \
+                            -passout pass:changeit
+                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
+                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                                                     -alias service \
+                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
+                    chmod 400 /data/keystore.jks
+                    cat <<EOF >> /data/lenses.conf
+lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.consumer.ssl.keystore.password=changeit
+lenses.kafka.settings.consumer.ssl.key.password=changeit
+
+lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.producer.ssl.keystore.password=changeit
+lenses.kafka.settings.producer.ssl.key.password=changeit
+EOF
+                    echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
+                fi
+                unset FILECONTENT_SSL_KEY_PEM
             fi
             ;;
         FILECONTENT_JAAS)
@@ -371,9 +471,9 @@ if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
         cp /license.json /data/license.json
     elif [[ -f /mnt/secrets/license.json ]]; then
         cp /mnt/secrets/license.json /data/license.json
-    elif [[ ! -z "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
+    elif [[ -n "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
         echo "$LICENSE" >> /data/license.json
-    elif [[ ! -z "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
+    elif [[ -n "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
         set +o errexit
         __p_lver() {
             source /build.info
