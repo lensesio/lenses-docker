@@ -25,7 +25,7 @@ engineering talk is on [Slack](https://launchpass.com/landoop-community)
 ## The Docker Image
 
 **Please check out the
-[docker image documentation at lenses.stream](https://lenses.stream/install_setup/deployment-options/docker-deployment.html)
+[docker image documentation at docs.lenses.io](https://docs.lenses.io/install_setup/deployment-options/docker-deployment.html)
 for the most recent docs and the complete set of features, settings and tweak
 knobs.**
 
@@ -92,8 +92,8 @@ services:
       # Secrets can also be passed as files. Check _examples/
       LENSES_SECURITY_GROUPS: |
         [
-          {"name": "adminGroup", "roles": ["admin", "write", "read"]},
-          {"name": "readGroup",  "roles": ["read"]}
+          {"name": "adminGroup", "roles": ["Admin", "DataPolicyWrite", "AlertsWrite", "TableStorageWrite"]},
+          {"name": "readGroup",  "roles": ["Read"]}
         ]
       LENSES_SECURITY_USERS: |
         [
@@ -159,4 +159,4 @@ The Lenses Team.
 
 ---
 
-Copyright 2017-2018, Landoop LTD
+Copyright 2017-2019, Landoop LTD
