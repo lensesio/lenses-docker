@@ -287,6 +287,22 @@ if [[ -d /run/secrets ]]; then
         echo "Found $fileSecret"
     done
 fi
+
+# Function to add a configuration if it does not already exists, in order to
+# deal with settings that may be added via more that one FILECONTENT_ entries.
+add_conf_if_not_exists(){
+    local FILE=$1
+    local CONFIG=$2
+    # This isn't completely robust but all input is controlled by us,
+    # we pass the CONFIG, not the user.
+    local OPTION_NAME="$(sed -r -e 's/^\s*([^=]+)=.*/\1/' <<<"$CONFIG")"
+    if ! grep -sqE "^\s*${OPTION_NAME}=" "$FILE"; then
+        cat <<EOF >>"$FILE"
+$CONFIG
+EOF
+    fi
+}
+
 # Process them
 for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
     case "$var" in
@@ -303,6 +319,8 @@ lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 EOF
+                # TODO: Use add_conf_if_not_exists to add processor settings
+                # in order to avoid forcing users to use lenses.append.conf
                 echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
                 unset FILECONTENT_SSL_KEYSTORE
             fi
@@ -331,11 +349,12 @@ EOF
                     DECODE="base64 -d"
                 fi
                 $DECODE <<< "$FILECONTENT_SSL_CACERT_PEM" > /tmp/cacert.pem
-                /opt/lenses/jre8u131/bin/keytool -importcert -noprompt \
-                                                 -keystore /data/truststore.jks \
-                                                 -alias ca \
-                                                 -file /tmp/cacert.pem \
-                                                 -storepass changeit
+                /opt/lenses/jre8u131/bin/keytool \
+                    -importcert -noprompt \
+                    -keystore /data/truststore.jks \
+                    -alias ca \
+                    -file /tmp/cacert.pem \
+                    -storepass changeit
                 rm -rf /tmp/cacert.pem /tmp/vlxjre
                 chmod 400 /data/truststore.jks
                 cat <<EOF >>/data/lenses.conf
@@ -365,10 +384,11 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
-                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                                                     -alias service \
-                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
@@ -402,10 +422,11 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
-                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                                                     -alias service \
-                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
@@ -482,12 +503,16 @@ EOF
                 # lenses.conf and security.conf with specific keytabs
                 cat <<EOF >>/data/lenses.conf
 lenses.kubernetes.processor.kafka.settings.keytab="/data/keytab"
-lenses.schema.registry.keytab="/data/keytab"
-lenses.kubernetes.processor.schema.registry.keytab="/data/keytab"
 EOF
-                cat <<EOF >> /data/security.conf
-lenses.security.kerberos.keytab=/data/keytab
-EOF
+                add_conf_if_not_exists \
+                    /data/lenses.conf \
+                    'lenses.schema.registry.keytab="/data/keytab"'
+                add_conf_if_not_exists \
+                    /data/lenses.conf \
+                    'lenses.kubernetes.processor.schema.registry.keytab="/data/keytab"'
+                add_conf_if_not_exists \
+                    /data/security.conf \
+                    'lenses.security.kerberos.keytab="/data/keytab"'
                 echo "File created. Sha256sum: $(sha256sum /data/keytab)"
                 unset FILECONTENT_KEYTAB
             fi
