@@ -39,15 +39,17 @@ OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENS
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS LENSES_SQL_CONNECT_CLUSTERS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_SECURITY_GROUPS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS LENSES_JMX_BROKERS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS"
+OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS LENSES_KAFKA LENSES_KAFKA_METRICS LENSES_KAFKA LENSES_KAFKA_METRICS"
+OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_METRICS_PORT LENSES_KAFKA_CONNECT_CLUSTER"
+
 OPTS_SENSITIVE="LENSES_SECURITY_USERS LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO"
-
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
 
 # LOAD settings from files
 # This loop is fragile but we demand filenames that map to env vars anyway
@@ -168,8 +170,12 @@ function process_variable {
         if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
             echo "${conf}=********"
             unset "${var}"
-        # Special case, connect clusters may include a password.
-        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ]] && grep -sq password <<<"${!var}"; then
+        # Special case, these may include a password.
+        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
+                     "$var" == LENSES_KAFKA_METRICS ||
+                     "$var" == LENSES_ZOOKEEPER_HOSTS ||
+                     "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
+                     "$var" == LENSES_KAFKA_CONNECT_CLUSTER ]] && grep -sq password <<<"${!var}"; then
             echo "${conf}=********"
             unset "${var}"
         else
@@ -281,6 +287,22 @@ if [[ -d /run/secrets ]]; then
         echo "Found $fileSecret"
     done
 fi
+
+# Function to add a configuration if it does not already exists, in order to
+# deal with settings that may be added via more that one FILECONTENT_ entries.
+add_conf_if_not_exists(){
+    local FILE=$1
+    local CONFIG=$2
+    # This isn't completely robust but all input is controlled by us,
+    # we pass the CONFIG, not the user.
+    local OPTION_NAME="$(sed -r -e 's/^\s*([^=]+)=.*/\1/' <<<"$CONFIG")"
+    if ! grep -sqE "^\s*${OPTION_NAME}=" "$FILE"; then
+        cat <<EOF >>"$FILE"
+$CONFIG
+EOF
+    fi
+}
+
 # Process them
 for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
     case "$var" in
@@ -295,7 +317,10 @@ for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
                 cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
+lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 EOF
+                # TODO: Use add_conf_if_not_exists to add processor settings
+                # in order to avoid forcing users to use lenses.append.conf
                 echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
                 unset FILECONTENT_SSL_KEYSTORE
             fi
@@ -311,6 +336,7 @@ EOF
                 cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
 lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
+lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
 EOF
                 echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
                 unset FILECONTENT_SSL_TRUSTSTORE
@@ -323,18 +349,23 @@ EOF
                     DECODE="base64 -d"
                 fi
                 $DECODE <<< "$FILECONTENT_SSL_CACERT_PEM" > /tmp/cacert.pem
-                /opt/lenses/jre8u131/bin/keytool -importcert -noprompt \
-                                                 -keystore /data/truststore.jks \
-                                                 -alias ca \
-                                                 -file /tmp/cacert.pem \
-                                                 -storepass changeit
+                /opt/lenses/jre8u131/bin/keytool \
+                    -importcert -noprompt \
+                    -keystore /data/truststore.jks \
+                    -alias ca \
+                    -file /tmp/cacert.pem \
+                    -storepass changeit
                 rm -rf /tmp/cacert.pem /tmp/vlxjre
                 chmod 400 /data/truststore.jks
                 cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
 lenses.kafka.settings.consumer.ssl.truststore.password=changeit
+
 lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
 lenses.kafka.settings.producer.ssl.truststore.password=changeit
+
+lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
+lenses.kubernetes.processor.kafka.settings.ssl.truststore.password=changeit
 EOF
                 echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
                 unset FILECONTENT_SSL_CACERT_PEM
@@ -353,10 +384,11 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
-                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                                                     -alias service \
-                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
@@ -367,6 +399,10 @@ lenses.kafka.settings.consumer.ssl.key.password=changeit
 lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.producer.ssl.keystore.password=changeit
 lenses.kafka.settings.producer.ssl.key.password=changeit
+
+lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
+lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
+lenses.kubernetes.processor.kafka.settings.ssl.key.password=changeit
 EOF
                     echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
                 fi
@@ -386,10 +422,11 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool -importkeystore -noprompt -v \
-                                                     -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                                                     -alias service \
-                                                     -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
@@ -400,6 +437,10 @@ lenses.kafka.settings.consumer.ssl.key.password=changeit
 lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.producer.ssl.keystore.password=changeit
 lenses.kafka.settings.producer.ssl.key.password=changeit
+
+lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
+lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
+lenses.kubernetes.processor.kafka.settings.ssl.key.password=changeit
 EOF
                     echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
                 fi
@@ -419,6 +460,21 @@ EOF
                 unset FILECONTENT_JAAS
             fi
             ;;
+        FILECONTENT_PROCESSOR_JAAS)
+            if [[ -n $FILECONTENT_PROCESSOR_JAAS ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_PROCESSOR_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_PROCESSOR_JAAS" > /data/jaas-processor.conf
+                chmod 400 /data/jaas-processor.conf
+                cat <<EOF >> /data/lenses.conf
+lenses.kubernetes.processor.jaas="/data/jaas-processor.conf"
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/jaas-processor.conf)"
+                unset FILECONTENT_PROCESSOR_JAAS
+            fi
+            ;;
         FILECONTENT_KRB5)
             if [[ -n $FILECONTENT_KRB5 ]]; then
                 DECODE="cat"
@@ -428,6 +484,9 @@ EOF
                 $DECODE <<< "$FILECONTENT_KRB5" > /data/krb5.conf
                 chmod 400 /data/krb5.conf
                 export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
+                cat <<EOF >> /data/lenses.conf
+lenses.kubernetes.processor.krb5="/data/krb5.conf"
+EOF
                 echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
                 unset FILECONTENT_KRB5
             fi
@@ -440,11 +499,58 @@ EOF
                 fi
                 $DECODE <<< "$FILECONTENT_KEYTAB" > /data/keytab
                 chmod 400 /data/keytab
+                # Later on we may overwrite some of these settings for
+                # lenses.conf and security.conf with specific keytabs
+                cat <<EOF >>/data/lenses.conf
+lenses.kubernetes.processor.kafka.settings.keytab="/data/keytab"
+EOF
+                add_conf_if_not_exists \
+                    /data/lenses.conf \
+                    'lenses.schema.registry.keytab="/data/keytab"'
+                add_conf_if_not_exists \
+                    /data/lenses.conf \
+                    'lenses.kubernetes.processor.schema.registry.keytab="/data/keytab"'
+                add_conf_if_not_exists \
+                    /data/security.conf \
+                    'lenses.security.kerberos.keytab="/data/keytab"'
                 echo "File created. Sha256sum: $(sha256sum /data/keytab)"
                 unset FILECONTENT_KEYTAB
             fi
             ;;
-
+        FILECONTENT_SECURITY_KEYTAB)
+            if [[ -n $FILECONTENT_SECURITY_KEYTAB ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_SECURITY_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_SECURITY_KEYTAB" > /data/security-keytab
+                chmod 400 /data/security-keytab
+                sed '/lenses.security.kerberos.keytab=/d' -i /data/security.conf
+                cat <<EOF >> /data/security.conf
+lenses.security.kerberos.keytab=/data/security-keytab
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/security-keytab)"
+                unset FILECONTENT_SECURITY_KEYTAB
+            fi
+            ;;
+        FILECONTENT_REGISTRY_KEYTAB)
+            if [[ -n $FILECONTENT_REGISTRY_KEYTAB ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_REGISTRY_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_REGISTRY_KEYTAB" > /data/registry-keytab
+                chmod 400 /data/registry-keytab
+                sed '/lenses.schema.registry.keytab=/d;/lenses.kubernetes.processor.schema.registry.keytab=/d' \
+                    -i /data/lenses.conf
+                cat <<EOF >> /data/lenses.conf
+lenses.schema.registry.keytab="/data/registry-keytab"
+lenses.kubernetes.processor.schema.registry.keytab="/data/registry-keytab"
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/registry-keytab)"
+                unset FILECONTENT_REGISTRY_KEYTAB
+            fi
+            ;;
         *)
             echo "Unknown filecontent variable $var was provided but won't be used."
             ;;
