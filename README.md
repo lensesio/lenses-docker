@@ -1,6 +1,6 @@
 # Lenses® for Apache Kafka
 
-This is the official Docker for [Lenses](http://landoop.com/kafka-lenses) that
+This is the official Docker for [Lenses](https://lenses.io/kafka-lenses) that
 enables you to:
 
 * View and Query Kafka Topic Data (Avro & JSon) - Browse and query with Lenses
@@ -19,7 +19,7 @@ As a state-less application lenses fits naturally in containers and run on
 **Kubernetes** or **Openshift**. It integrates and helps you instrument and view
 your streaming data pipelines; as well as operate them with confidence !
 
-The documentation is always available at https://lenses.stream and data
+The documentation is always available at https://docs.lenses.io and data
 engineering talk is on [Slack](https://launchpass.com/landoop-community)
 
 ## The Docker Image
@@ -32,7 +32,7 @@ knobs.**
 
 This image is aimed for our enterprise clients, though anyone with a free
 developer license may use it. Visit
-our [download page](https://www.landoop.com/downloads/) to get a free developer
+our [download page](https://lenses.io/downloads/) to get a free developer
 license or an enterprise trial.  Only Lenses is included in this docker. Our
 development environment image, which additionally includes Kafka, Connect,
 Schema Registry and our open-source Stream Reactor collection of connectors can
@@ -128,7 +128,7 @@ environment variables but it is possible to set directly these files instead.
 
 Create your configuration files according to
 the
-[documentation](http://lenses.stream/install_setup/configuration/lenses-config.html) and
+[documentation](https://docs.lenses.io/install_setup/configuration/lenses-config.html) and
 mount them under `/mnt/settings` and `/mnt/secrets` respectively —i.e
 `/mnt/settings/lenses.conf` and `/mnt/secrets/security.conf`. You can set either
 one or both together. Please for `lenses.conf` omit the settings
@@ -159,4 +159,4 @@ The Lenses Team.
 
 ---
 
-Copyright 2017-2019, Landoop LTD
+Copyright 2017-2019, Lenses.io Ltd
