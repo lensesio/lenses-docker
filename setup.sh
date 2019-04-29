@@ -689,7 +689,7 @@ else
 fi
 
 # Enable fastdata_agent for exporting metrics to prometheus
-export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=9102:/opt/landoop/fast_data_monitoring/client.yml"
+export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=9102:/opt/landoop/fast_data_monitoring/exporter.yml"
 
 # If PAUSE_EXEC is set, we wait for 10 minutes before starting lenses.
 # This way we can go into the container and debug things before it exits.
