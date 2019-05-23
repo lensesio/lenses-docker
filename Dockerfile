@@ -18,13 +18,11 @@ RUN apt-get update && apt-get install -y \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
 
-# Install lenses
-ARG AD_UN
-ARG AD_PW
-ARG AD_URL=https://archive.landoop.com/lenses/2.3/lenses-2.3.3-linux64.tar.gz
-RUN wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
-    && tar xf /lenses.tgz -C /opt \
-    && rm /lenses.tgz
+# Install Lenses
+COPY ./lenses.tar.gz /lenses.tar.gz
+RUN  tar xf /lenses.tgz -C /opt \
+     && rm /lenses.tgz
+
 
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
@@ -47,9 +45,9 @@ ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
-    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+RUN grep "export LENSES_REVISION"      /opt/lenses/bin/lenses | sed -e "s/export //" | tee /build.info \
+    && grep "export LENSESUI_REVISION" /opt/lenses/bin/lenses | sed -e "s/export //" | tee -a /build.info \
+    && grep "export LENSES_VERSION"    /opt/lenses/bin/lenses | sed -e "s/export //" | tee -a /build.info \
     && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
     && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
     && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
