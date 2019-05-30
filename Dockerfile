@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     && mkdir -p /mnt/settings /mnt/secrets
 
 # Install Lenses
-COPY ./lenses.tar.gz /lenses.tar.gz
+COPY ./lenses.tar.gz /lenses.tgz
 RUN  tar xf /lenses.tgz -C /opt \
      && rm /lenses.tgz \
      && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre8u131
