@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
         gosu \
         netcat \
         wget \
+	default-jre-headless \
     && rm -rf /var/lib/apt/lists/* \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
     && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
@@ -22,7 +23,7 @@ RUN apt-get update && apt-get install -y \
 COPY ./lenses.tar.gz /lenses.tar.gz
 RUN  tar xf /lenses.tgz -C /opt \
      && rm /lenses.tgz
-
+     && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre8u131
 
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
