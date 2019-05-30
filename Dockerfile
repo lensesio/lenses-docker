@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 # Install Lenses
 COPY ./lenses.tar.gz /lenses.tar.gz
 RUN  tar xf /lenses.tgz -C /opt \
-     && rm /lenses.tgz
+     && rm /lenses.tgz \
      && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre8u131
 
 # Add jmx_exporter
