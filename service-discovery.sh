@@ -155,7 +155,7 @@ for index in "${!c_filters[@]}"; do
     fi
 done
 if [[ -f /tmp/sd-connect ]]; then
-    echo "export LENSES_CONNECT_CLUSTERS='[$(cat /tmp/sd-connect | sed -e 's/,$//')]'" | tee -a /tmp/service-discovery
+    echo "export LENSES_KAFKA_CONNECT_CLUSTERS='[$(cat /tmp/sd-connect | sed -e 's/,$//')]'" | tee -a /tmp/service-discovery
     echo
 fi
 

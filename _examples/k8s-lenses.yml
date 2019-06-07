@@ -28,7 +28,7 @@ spec:
           [
             {url: "http://kafka:8081", jmx: "kafka:9582"}
           ]
-      - name: LENSES_CONNECT_CLUSTERS
+      - name: LENSES_KAFKA_CONNECT_CLUSTERS
         value: |
           [
             {

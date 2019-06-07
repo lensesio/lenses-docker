@@ -75,7 +75,7 @@ services:
           {url:"http://schema.registry.1.url:8081",jmx:"schema.registry.1.url:9582"},
           {url:"http://schema.registry.2.url:8081",jmx:"schema.registry.2.url:9582"}
         ]
-      LENSES_CONNECT_CLUSTERS: |
+      LENSES_KAFKA_CONNECT_CLUSTERS: |
         [
           {
             name:"data_science",

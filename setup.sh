@@ -35,7 +35,7 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CH
 # lenses will ignore these settings, they usually include characters that need quotes, so now we also need to
 # set explicitly which fields do not need quotes. For the settings that do not much either of OPTS_NEEDQUOTE
 # or OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
-OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENSES_SECURITY_USERS"
+OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_KAFKA_CONNECT_CLUSTERS LENSES_JMX_CONNECT LENSES_SECURITY_USERS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS LENSES_SQL_CONNECT_CLUSTERS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS LENSES_SECURITY_GROUPS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS LENSES_JMX_BROKERS"
@@ -98,8 +98,8 @@ fi
 [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  \
     && echo "LENSES_SCHEMA_REGISTRY_URLS is not set via env var or individual file."
 
-[[ -z $LENSES_CONNECT_CLUSTERS ]] \
-    && echo "LENSES_CONNECT_CLUSTERS is not set via env var or individual file."
+[[ -z $LENSES_KAFKA_CONNECT_CLUSTERS ]] \
+    && echo "LENSES_KAFKA_CONNECT_CLUSTERS is not set via env var or individual file."
 
 [[ -z $LENSES_SECURITY_USERS ]] \
     && echo "LENSES_SECURITY_USERS is not set via env var or individual file."
@@ -171,7 +171,7 @@ function process_variable {
             echo "${conf}=********"
             unset "${var}"
         # Special case, these may include a password.
-        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
+        elif [[ "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
                      "$var" == LENSES_KAFKA_METRICS ||
                      "$var" == LENSES_ZOOKEEPER_HOSTS ||
                      "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
