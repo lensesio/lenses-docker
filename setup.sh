@@ -29,7 +29,8 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_S
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CHROOT LENSES_ALERT_MANAGER_ENDPOINTS LENSES_ALERT_MANAGER_SOURCE LENSES_KUBERNETES_PROCESSOR_JAAS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CHROOT LENSES_ALERT_MANAGER_ENDPOINTS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERT_MANAGER_SOURCE LENSES_KUBERNETES_PROCESSOR_JAAS"
 # We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking)
 # can create settings that we process (env vars that start with 'LENSES_') and put into the conf file. Although
 # lenses will ignore these settings, they usually include characters that need quotes, so now we also need to
@@ -98,7 +99,7 @@ fi
 [[ -z $LENSES_SCHEMA_REGISTRY_URLS ]]  \
     && echo "LENSES_SCHEMA_REGISTRY_URLS is not set via env var or individual file."
 
-[[ -z $LENSES_CONNECT_CLUSTERS ]] \
+[[ -z $LENSES_CONNECT_CLUSTERS ]] && [[ -z $LENSES_KAFKA_CONNECT_CLUSTERS ]] \
     && echo "LENSES_CONNECT_CLUSTERS is not set via env var or individual file."
 
 [[ -z $LENSES_SECURITY_USERS ]] \
@@ -175,7 +176,7 @@ function process_variable {
                      "$var" == LENSES_KAFKA_METRICS ||
                      "$var" == LENSES_ZOOKEEPER_HOSTS ||
                      "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
-                     "$var" == LENSES_KAFKA_CONNECT_CLUSTER ]] && grep -sq password <<<"${!var}"; then
+                     "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ]] && grep -sq password <<<"${!var}"; then
             echo "${conf}=********"
             unset "${var}"
         else

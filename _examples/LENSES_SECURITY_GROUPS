@@ -1,4 +1,4 @@
 [
-  {"name": "adminGroup", "roles": ["admin", "write", "read"]},
-  {"name": "readGroup",  "roles": ["read"]}
+  {"name": "adminGroup", "roles": ["Admin", "DataPolicyWrite", "AlertsWrite", "TableStorageWrite"]},
+  {"name": "readGroup",  "roles": ["Read", "DataPolicyRead", "AlertsRead", "TableStorageRead"]}
 ]
