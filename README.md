@@ -90,6 +90,8 @@ services:
       #       offsets:"connect-offsets-cluster-a"
       #     }
       #   ]
+
+      # # Zookeeper access is optional
       # LENSES_ZOOKEEPER_HOSTS: |
       #   [
       #     {url:"zookeeper.1.url:2181"},
