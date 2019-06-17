@@ -61,33 +61,41 @@ A brief example of a docker-compose file to setup Lenses, would be:
 version: '2'
 services:
   lenses:
-    image: landoop/lenses:2.1
+    image: landoop/lenses
     environment:
       LENSES_PORT: 9991
       LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
-      LENSES_ZOOKEEPER_HOSTS: |
-        [
-          {url:"zookeeper.1.url:2181", jmx:"zookeeper.1.url:9585"},
-          {url:"zookeeper.2.url:2181", jmx:"zookeeper.2.url:9585"}
-        ]
-      LENSES_SCHEMA_REGISTRY_URLS: |
-        [
-          {url:"http://schema.registry.1.url:8081",jmx:"schema.registry.1.url:9582"},
-          {url:"http://schema.registry.2.url:8081",jmx:"schema.registry.2.url:9582"}
-        ]
-      LENSES_KAFKA_CONNECT_CLUSTERS: |
-        [
-          {
-            name:"data_science",
-            urls: [
-              {url:"http://connect.worker.1.url:8083",jmx:"connect.worker.1.url:9584"},
-              {url:"http://connect.worker.2.url:8083",jmx:"connect.worker.2.url:9584"}
-            ],
-            statuses:"connect-statuses-cluster-a",
-            configs:"connect-configs-cluster-a",
-            offsets:"connect-offsets-cluster-a"
-          }
-        ]
+
+      # # If you have enabled JMX for your brokers, set the port here
+      # LENSES_KAFKA_METRICS_DEFAULT_PORT: 9581
+
+      # # If you use AVRO, configure the Schema Registry
+      # LENSES_SCHEMA_REGISTRY_URLS: |
+      #   [
+      #     {url:"http://schema.registry.1.url:8081"},
+      #     {url:"http://schema.registry.2.url:8081"}
+      #   ]
+
+      # # If you use Kafka Connect, configure the workers.
+      # LENSES_KAFKA_CONNECT_CLUSTERS: |
+      #   [
+      #     {
+      #       name:"data_science",
+      #       urls: [
+      #         {url:"http://connect.worker.1.url:8083"},
+      #         {url:"http://connect.worker.2.url:8083"}
+      #       ],
+      #       statuses:"connect-statuses-cluster-a",
+      #       configs:"connect-configs-cluster-a",
+      #       offsets:"connect-offsets-cluster-a"
+      #     }
+      #   ]
+      # LENSES_ZOOKEEPER_HOSTS: |
+      #   [
+      #     {url:"zookeeper.1.url:2181"},
+      #     {url:"zookeeper.2.url:2181"}
+      #   ]
+
       LENSES_SECURITY_MODE: BASIC
       # Secrets can also be passed as files. Check _examples/
       LENSES_SECURITY_GROUPS: |
