@@ -1,5 +1,26 @@
 #!/usr/bin/env bash
 
+onlyLinux()
+{
+    UNAME=$(which uname)
+    if [ "xx$UNAME" == "xx" ]
+    then
+	echo "Unable to identify system. Uname is required"
+	exit 1
+    fi
+
+    systemType="$($UNAME -s)"
+    case "$systemType" in
+	Linux*) return ;;
+    esac
+
+    echo "You are running on $systemType system. Lenses currently support only Linux."
+    echo "Please follow the installation instructions on docs.lenses.io"
+    exit 1
+}
+
+onlyLinux
+
 echo "Initializing environment —docker setup script."
 
 umask 0077
