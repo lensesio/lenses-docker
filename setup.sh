@@ -21,7 +21,7 @@ fi
 
 #export telemetry vars
 source /build.info
-export LT_PACKAGE="DOCKER"
+export LT_PACKAGE="docker"
 export LT_PACKAGE_VERSION="${BUILD_COMMIT}"
 
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
