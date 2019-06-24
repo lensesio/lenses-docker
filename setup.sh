@@ -20,8 +20,8 @@ if [[ $STRICT_SCRIPT =~ $TRUE_REG ]]; then
 fi
 
 source /build.info
-export LT_PACKAGE="${LT_PACKAGE:=docker}"
-export LT_PACKAGE_VERSION="${LT_PACKAGE_VERSION:=$BUILD_COMMIT}"
+export LT_PACKAGE=${LT_PACKAGE:-docker}
+export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
