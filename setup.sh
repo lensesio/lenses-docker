@@ -462,10 +462,6 @@ EOF
                 chmod 400 /data/lenses.jks
                 cat <<EOF >>/data/lenses.conf
 lenses.ssl.keystore.location=/data/lenses.jks
-lenses.ssl.keystore.password="changeit"
-lenses.ssl.key.password="changeit"
-lenses.ssl.algorithm="SunX509"
-lenses.ssl.enabled.protocols="TLSv1.2"
 EOF
                 # TODO: Use add_conf_if_not_exists to add processor settings
                 # in order to avoid forcing users to use lenses.append.conf
@@ -497,8 +493,6 @@ EOF
 lenses.ssl.keystore.location=/data/lenses.jks
 lenses.ssl.keystore.password="changeit"
 lenses.ssl.key.password="changeit"
-lenses.ssl.algorithm="SunX509"
-lenses.ssl.enabled.protocols="TLSv1.2"
 EOF
                     echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
                 fi
@@ -529,8 +523,6 @@ EOF
 lenses.ssl.keystore.location=/data/lenses.jks
 lenses.ssl.keystore.password="changeit"
 lenses.ssl.key.password="changeit"
-lenses.ssl.algorithm="SunX509"
-lenses.ssl.enabled.protocols="TLSv1.2"
 EOF
                     echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
                 fi
