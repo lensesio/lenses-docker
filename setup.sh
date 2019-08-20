@@ -448,6 +448,83 @@ EOF
                 unset FILECONTENT_SSL_KEY_PEM
             fi
             ;;
+        FILECONTENT_LENSES_SSL_KEYSTORE)
+            if [[ -n $FILECONTENT_LENSES_SSL_KEYSTORE ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_LENSES_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_LENSES_SSL_KEYSTORE" > /data/lenses.jks
+                chmod 400 /data/lenses.jks
+                cat <<EOF >>/data/lenses.conf
+lenses.ssl.keystore.location=/data/lenses.jks
+EOF
+                # TODO: Use add_conf_if_not_exists to add processor settings
+                # in order to avoid forcing users to use lenses.append.conf
+                echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
+                unset FILECONTENT_LENSES_SSL_KEYSTORE
+            fi
+            ;;
+        FILECONTENT_LENSES_SSL_KEY_PEM)
+            if [[ -n $FILECONTENT_LENSES_SSL_KEY_PEM ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_LENSES_SSL_KEY_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_LENSES_SSL_KEY_PEM" > /tmp/lenseskey.pem
+                if [[ -f /tmp/lensescert.pem ]]; then
+                    openssl pkcs12 -export \
+                            -in /tmp/lensescert.pem -inkey /tmp/lenseskey.pem \
+                            -out /tmp/keystore.p12 \
+                            -name service \
+                            -passout pass:changeit
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/lenses.jks
+                    rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem /tmp/keystore.p12 /tmp/vlxjre
+                    chmod 400 /data/lenses.jks
+                    cat <<EOF >> /data/lenses.conf
+lenses.ssl.keystore.location=/data/lenses.jks
+lenses.ssl.keystore.password="changeit"
+lenses.ssl.key.password="changeit"
+EOF
+                    echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
+                fi
+                unset FILECONTENT_LENSES_SSL_KEY_PEM
+            fi
+            ;;
+        FILECONTENT_LENSES_SSL_CERT_PEM)
+            if [[ -n $FILECONTENT_LENSES_SSL_CERT_PEM ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_LENSES_SSL_CERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_LENSES_SSL_CERT_PEM" > /tmp/lensescert.pem
+                if [[ -f /tmp/lenseskey.pem ]]; then
+                    openssl pkcs12 -export \
+                            -in /tmp/lensescert.pem -inkey /tmp/lenseskey.pem \
+                            -out /tmp/keystore.p12 \
+                            -name service \
+                            -passout pass:changeit
+                    /opt/lenses/jre8u131/bin/keytool \
+                        -importkeystore -noprompt -v \
+                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
+                        -alias service \
+                        -deststorepass changeit -destkeypass changeit -destkeystore /data/lenses.jks
+                    rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem /tmp/keystore.p12 /tmp/vlxjre
+                    chmod 400 /data/lenses.jks
+                    cat <<EOF >> /data/lenses.conf
+lenses.ssl.keystore.location=/data/lenses.jks
+lenses.ssl.keystore.password="changeit"
+lenses.ssl.key.password="changeit"
+EOF
+                    echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
+                fi
+                unset FILECONTENT_LENSES_SSL_CERT_PEM
+            fi
+            ;;
         FILECONTENT_JAAS)
             if [[ -n $FILECONTENT_JAAS ]]; then
                 DECODE="cat"
