@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+set -o nounset
+
+# Load build information
+eval $(docker run --rm $IMAGE_NAME cat build.info)
+
+
+LENSES_VERSION=${LENSES_VERSION:-}
+
+# Master should publish lenses:latest
+if [[ $BUILD_BRANCH == master ]]; then
+    # 'landooop/lenses:latest' is pushed automatically
+
+    # Also push to lensesio/lenses
+    docker tag $IMAGE_NAME lensesio/lenses:latest
+    docker push lensesio/lenses:latest
+fi
+
+# Branches should publish minor and major version tags
+# Note: For this to work, docker hub landoop/lenses should be set to build on push on these branches
+# So, new branch? Go fix docker hub.
+if [[ $BUILD_BRANCH =~ ^[0-9]+\.[0-9]+$ ]] && [[ -n $LENSES_VERSION ]]; then
+    # BUILD_BRANCH is Lenses major version, e.g 2.3
+    # 'landoop/lenses:$BUILD_BRANCH is pushed automatically
+
+    # Also push 'lensesio/lenses:$BUILD_BRANCH'
+    docker tag $IMAGE_NAME lensesio/lenses:$BUILD_BRANCH
+    docker push lensesio/lenses:$BUILD_BRANCH
+
+    # Also push 'landoop/lenses:$MINOR_VERSION'
+    docker tag $IMAGE_NAME landoop/lenses:$LENSES_VERSION
+    docker push landoop/lenses:$LENSES_VERSION
+
+    # Also push 'lensesio/lenses:$MINOR_VERSION'
+    docker tag $IMAGE_NAME lensesio/lenses:$LENSES_VERSION
+    docker push lensesion/lenses:$LENSES_VERSION
+fi
