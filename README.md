@@ -61,7 +61,7 @@ A brief example of a docker-compose file to setup Lenses, would be:
 version: '2'
 services:
   lenses:
-    image: landoop/lenses
+    image: lensesio/lenses
     environment:
       LENSES_PORT: 9991
       LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
@@ -98,18 +98,10 @@ services:
       #     {url:"zookeeper.2.url:2181"}
       #   ]
 
-      LENSES_SECURITY_MODE: BASIC
-      # Secrets can also be passed as files. Check _examples/
-      LENSES_SECURITY_GROUPS: |
-        [
-          {"name": "adminGroup", "roles": ["Admin", "DataPolicyWrite", "AlertsWrite", "TableStorageWrite"]},
-          {"name": "readGroup",  "roles": ["Read"]}
-        ]
-      LENSES_SECURITY_USERS: |
-        [
-          {"username": "admin", "password": "admin", "displayname": "Lenses Admin", "groups": ["adminGroup"]},
-          {"username": "read", "password": "read", "displayname": "Read Only", "groups": ["readGroup"]}
-        ]
+      # # Users are managed within Lenses. Here you can change the superuser username:
+      # LENSES_SECURITY_USER: admin
+      # # Users are managed within Lenses. Here you can change the superuser password:
+      # LENSES_SECURITY_PASSWORD: admin
     ports:
       - 9991:9991
       - 9102:9102
