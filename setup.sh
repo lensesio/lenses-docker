@@ -297,7 +297,8 @@ add_conf_if_not_exists(){
     local CONFIG=$2
     # This isn't completely robust but all input is controlled by us,
     # we pass the CONFIG, not the user.
-    local OPTION_NAME="$(sed -r -e 's/^\s*([^=]+)=.*/\1/' <<<"$CONFIG")"
+    local OPTION_NAME
+    OPTION_NAME="$(sed -r -e 's/^\s*([^=]+)=.*/\1/' <<<"$CONFIG")"
     if ! grep -sqE "^\s*${OPTION_NAME}=" "$FILE"; then
         cat <<EOF >>"$FILE"
 $CONFIG
@@ -628,6 +629,25 @@ lenses.kubernetes.processor.schema.registry.keytab="/data/registry-keytab"
 EOF
                 echo "File created. Sha256sum: $(sha256sum /data/registry-keytab)"
                 unset FILECONTENT_REGISTRY_KEYTAB
+            fi
+            ;;
+        FILECONTENT_JVM_SSL_TRUSTSTORE)
+            if [[ -n $FILECONTENT_JVM_SSL_TRUSTSTORE ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_JVM_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_JVM_SSL_TRUSTSTORE" > /data/jvm_truststore.jks
+                echo "File created. Sha256sum: $(sha256sum /data/jvm_truststore.jks)"
+                chmod 400 /data/jvm_truststore.jks
+                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStore=/data/jvm_truststore.jks"
+                unset FILECONTENT_JVM_SSL_TRUSTSTORE
+            fi
+            ;;
+        FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD)
+            if [[ -n $FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD ]]; then
+                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStorePassword=${FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD}"
+                unset FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD
             fi
             ;;
         *)
