@@ -1,4 +1,4 @@
-FROM debian:latest
+FROM debian:9.11
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
 # Update, install tooling and some basic setup
@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
         gosu \
         netcat \
         wget \
-	default-jre-headless \
+        openjdk-8-jre-headless:amd64=8u232-b09-1~deb9u1 \
     && rm -rf /var/lib/apt/lists/* \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
     && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
