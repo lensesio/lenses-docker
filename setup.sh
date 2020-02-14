@@ -687,12 +687,14 @@ fi
 # Append Advanced Configuration Snippet
 DETECTED_LENAPPENDFILE=false
 if [[ -f /mnt/settings/lenses.append.conf ]]; then
+    echo -e "\n# lenses.append.conf" >> /data/lenses.conf
     cat /mnt/settings/lenses.append.conf >> /data/lenses.conf
     echo "Appending advanced configuration snippet to lenses.conf"
     DETECTED_LENAPPENDFILE=true
 fi
 DETECTED_SECAPPENDFILE=false
 if [[ -f /mnt/settings/security.append.conf ]]; then
+    echo -e "\n# security.append.conf" >> /data/security.conf
     cat /mnt/settings/security.append.conf >> /data/security.conf
     echo "Appending advanced configuration snippet to security.conf."
     if [[ $DETECTED_SECCUSTOMFILE == true ]]; then
