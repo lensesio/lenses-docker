@@ -637,10 +637,10 @@ EOF
                 if ! echo -n "$FILECONTENT_JVM_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
                     DECODE="base64 -d"
                 fi
-                $DECODE <<< "$FILECONTENT_JVM_SSL_TRUSTSTORE" > /data/jvm_truststore.jks
-                echo "File created. Sha256sum: $(sha256sum /data/jvm_truststore.jks)"
-                chmod 400 /data/jvm_truststore.jks
-                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStore=/data/jvm_truststore.jks"
+                $DECODE <<< "$FILECONTENT_JVM_SSL_TRUSTSTORE" > /data/jvm-truststore.jks
+                echo "File created. Sha256sum: $(sha256sum /data/jvm-truststore.jks)"
+                chmod 400 /data/jvm-truststore.jks
+                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStore=/data/jvm-truststore.jks"
                 unset FILECONTENT_JVM_SSL_TRUSTSTORE
             fi
             ;;
@@ -751,6 +751,7 @@ if [[ "$C_UID" == 0 ]]; then
           /data/logback.xml \
           /data/keystore.jks \
           /data/truststore.jks \
+          /data/jvm-truststore.jks \
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab
@@ -766,6 +767,7 @@ if [[ "$C_UID" == 0 ]]; then
           /data/logback.xml \
           /data/keystore.jks \
           /data/truststore.jks \
+          /data/jvm-truststore.jks \
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab
