@@ -317,8 +317,7 @@ for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
                 $DECODE <<< "$FILECONTENT_SSL_KEYSTORE" > /data/keystore.jks
                 chmod 400 /data/keystore.jks
                 cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.ssl.keystore.location=/data/keystore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 EOF
                 # TODO: Use add_conf_if_not_exists to add processor settings
@@ -336,8 +335,7 @@ EOF
                 $DECODE <<< "$FILECONTENT_SSL_TRUSTSTORE" > /data/truststore.jks
                 chmod 400 /data/truststore.jks
                 cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
-lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
+lenses.kafka.settings.ssl.truststore.location=/data/truststore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
 EOF
                 echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
@@ -360,11 +358,8 @@ EOF
                 rm -rf /tmp/cacert.pem /tmp/vlxjre
                 chmod 400 /data/truststore.jks
                 cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.consumer.ssl.truststore.location=/data/truststore.jks
-lenses.kafka.settings.consumer.ssl.truststore.password=changeit
-
-lenses.kafka.settings.producer.ssl.truststore.location=/data/truststore.jks
-lenses.kafka.settings.producer.ssl.truststore.password=changeit
+lenses.kafka.settings.ssl.truststore.location=/data/truststore.jks
+lenses.kafka.settings.ssl.truststore.password=changeit
 
 lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.truststore.password=changeit
@@ -394,13 +389,9 @@ EOF
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
-lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.consumer.ssl.keystore.password=changeit
-lenses.kafka.settings.consumer.ssl.key.password=changeit
-
-lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.producer.ssl.keystore.password=changeit
-lenses.kafka.settings.producer.ssl.key.password=changeit
+lenses.kafka.settings.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.ssl.keystore.password=changeit
+lenses.kafka.settings.ssl.key.password=changeit
 
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
@@ -432,13 +423,9 @@ EOF
                     rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
                     chmod 400 /data/keystore.jks
                     cat <<EOF >> /data/lenses.conf
-lenses.kafka.settings.consumer.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.consumer.ssl.keystore.password=changeit
-lenses.kafka.settings.consumer.ssl.key.password=changeit
-
-lenses.kafka.settings.producer.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.producer.ssl.keystore.password=changeit
-lenses.kafka.settings.producer.ssl.key.password=changeit
+lenses.kafka.settings.ssl.keystore.location=/data/keystore.jks
+lenses.kafka.settings.ssl.keystore.password=changeit
+lenses.kafka.settings.ssl.key.password=changeit
 
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
