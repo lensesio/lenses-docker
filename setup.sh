@@ -60,6 +60,7 @@ OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SET
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_ALERTING_PLUGIN_CONFIG_WEBHOOK_URL LENSES_ALERTING_PLUGIN_CONFIG_USERNAME "
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_SAML_KEYSTORE_PASSWORD LENSES_SECURITY_SAML_KEYSTORE_KEY_PASSWORD "
 
 # LOAD settings from files
 # This loop is fragile but we demand filenames that map to env vars anyway
@@ -596,6 +597,36 @@ EOF
                 unset FILECONTENT_KEYTAB
             fi
             ;;
+        FILECONTENT_LENSES_SECURITY_SAML_KEYSTORE)
+            if [[ -n $FILECONTENT_LENSES_SECURITY_SAML_KEYSTORE ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_LENSES_SECURITY_SAML_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_LENSES_SECURITY_SAML_KEYSTORE" > /data/saml-keystore.jks
+                chmod 400 /data/saml-keystore.jks
+                cat <<EOF >> /data/security.conf
+lenses.security.saml.keystore.location=/data/saml-keystore.jks
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/saml-keystore.jks)"
+                unset FILECONTENT_LENSES_SECURITY_SAML_KEYSTORE
+            fi
+            ;;
+        FILECONTENT_SECURITY_SAML_IDP_METADATA)
+            if [[ -n $FILECONTENT_SECURITY_SAML_IDP_METADATA ]]; then
+                DECODE="cat"
+                if ! echo -n "$FILECONTENT_SECURITY_SAML_IDP_METADATA" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+                    DECODE="base64 -d"
+                fi
+                $DECODE <<< "$FILECONTENT_SECURITY_SAML_IDP_METADATA" > /data/security-saml-idp.xml
+                chmod 400 /data/security-saml-idp.xml
+                cat <<EOF >> /data/security.conf
+lenses.security.saml.idp.metadata.file=/data/security-saml-idp.xml
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/security-saml-idp.xml)"
+                unset FILECONTENT_SECURITY_SAML_IDP_METADATA
+            fi
+            ;;
         FILECONTENT_SECURITY_KEYTAB)
             if [[ -n $FILECONTENT_SECURITY_KEYTAB ]]; then
                 DECODE="cat"
@@ -730,6 +761,8 @@ if [[ "$C_UID" == 0 ]]; then
           /data/security.conf \
           /data/logback.xml \
           /data/keystore.jks \
+          /data/saml-keystore.jks \
+          /data/security-saml-idp.xml \
           /data/truststore.jks \
           /data/jaas.conf \
           /data/krb5.conf \
@@ -745,6 +778,8 @@ if [[ "$C_UID" == 0 ]]; then
           /data/security.conf \
           /data/logback.xml \
           /data/keystore.jks \
+          /data/saml-keystore.jks \
+          /data/security-saml-idp.xml \
           /data/truststore.jks \
           /data/jaas.conf \
           /data/krb5.conf \
