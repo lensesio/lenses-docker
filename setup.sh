@@ -216,6 +216,11 @@ if [[ -f /mnt/secrets/security.conf ]]; then
     DETECTED_SECFILE=true
 fi
 
+# Create an empty security.conf to keep lenses happy
+if [[ ! -f /data/security.conf ]]; then
+    touch /data/security.conf
+fi
+
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     # Try to detect some envs set by kubernetes and/or docker link and skip them.
