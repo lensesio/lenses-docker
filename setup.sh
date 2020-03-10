@@ -53,11 +53,8 @@ OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS
 
 OPTS_SENSITIVE="LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS" # These are deprecated but keep them so we protect users from suboptimal upgrades.
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_ALERTING_PLUGIN_CONFIG_WEBHOOK_URL LENSES_ALERTING_PLUGIN_CONFIG_USERNAME LENSES_SSL_KEYSTORE_PASSWORD LENSES_SSL_KEY_PASSWORD"
 
@@ -138,6 +135,19 @@ OPTS_SENSITIVE=" $OPTS_SENSITIVE "
 rm -f /data/lenses.conf
 rm -rf /tmp/vlxjre
 
+# This takes as argument a variable name and detects if it contains sensitive data
+function detect_sensitive_variable {
+    local var="$1"
+    # shellcheck disable=SC2076
+    if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+        return 0
+    fi
+    if [[ "$var" == *"PASSWORD"* ]]; then
+        return 0
+    fi
+    return 1
+}
+
 # This takes as arguments a variable name and a file (lenses.conf or security.conf)
 # and process the variable before adding it to the file (i.e convert to lowercase,
 # check if it needs quotes, etc).
@@ -155,7 +165,7 @@ function process_variable {
     # shellcheck disable=SC2076
     if [[ "$OPTS_NEEDQUOTE" =~ " $var " ]]; then
         echo "${conf}=\"${!var}\"" >> "$config_file"
-        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+        if detect_sensitive_variable "$var"; then
             echo "${conf}=********"
             unset "${var}"
         else
@@ -168,7 +178,7 @@ function process_variable {
     # shellcheck disable=SC2076
     if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
         echo "${conf}=${!var}" >> "$config_file"
-        if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+        if detect_sensitive_variable "$var"; then
             echo "${conf}=********"
             unset "${var}"
         # Special case, these may include a password.
@@ -193,8 +203,8 @@ function process_variable {
     else
         echo "${conf}=${!var}" >> "$config_file"
     fi
-    # shellcheck disable=SC2076
-    if [[ "$OPTS_SENSITIVE" =~ " $var " ]]; then
+
+    if detect_sensitive_variable "$var"; then
         echo "${conf}=********"
         unset "${var}"
     else
