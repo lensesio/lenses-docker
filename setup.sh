@@ -758,6 +758,7 @@ if [[ "$C_UID" == 0 ]]; then
           /data/keystore.jks \
           /data/truststore.jks \
           /data/jvm-truststore.jks \
+          /data/lenses.jks \
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab
@@ -774,6 +775,7 @@ if [[ "$C_UID" == 0 ]]; then
           /data/keystore.jks \
           /data/truststore.jks \
           /data/jvm-truststore.jks \
+          /data/lenses.jks \
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab
