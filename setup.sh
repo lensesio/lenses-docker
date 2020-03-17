@@ -741,7 +741,9 @@ C_GID="$(id -g)"
 # C_STATE_GID="$(stat -c '%g' /data/kafka-streams-state)"
 C_SUCMD=""
 C_SUID=""
-if [[ "$C_UID" == 0 ]]; then
+
+FORCE_ROOT_USER=${FORCE_ROOT_USER:-false}
+if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
     echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
     echo "and drop priviliges."
     # Directories first, files second, in logical/timeline order
