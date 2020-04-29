@@ -23,7 +23,8 @@ RUN apt-get update && apt-get install -y \
 COPY ./lenses.tar.gz /lenses.tgz
 RUN  tar xf /lenses.tgz -C /opt \
      && rm /lenses.tgz \
-     && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre8u131
+     && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre8u131 \
+     && ln -s /usr/lib/jvm/java-1.8.0-openjdk-amd64 /opt/lenses/jre
 
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
