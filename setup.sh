@@ -372,7 +372,7 @@ EOF
                     DECODE="base64 -d"
                 fi
                 $DECODE <<< "$FILECONTENT_SSL_CACERT_PEM" > /tmp/cacert.pem
-                /opt/lenses/jre8u131/bin/keytool \
+                /opt/lenses/jre/bin/keytool \
                     -importcert -noprompt \
                     -keystore /data/truststore.jks \
                     -alias ca \
@@ -404,7 +404,7 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool \
+                    /opt/lenses/jre/bin/keytool \
                         -importkeystore -noprompt -v \
                         -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
                         -alias service \
@@ -438,7 +438,7 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool \
+                    /opt/lenses/jre/bin/keytool \
                         -importkeystore -noprompt -v \
                         -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
                         -alias service \
@@ -489,7 +489,7 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool \
+                    /opt/lenses/jre/bin/keytool \
                         -importkeystore -noprompt -v \
                         -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
                         -alias service \
@@ -519,7 +519,7 @@ EOF
                             -out /tmp/keystore.p12 \
                             -name service \
                             -passout pass:changeit
-                    /opt/lenses/jre8u131/bin/keytool \
+                    /opt/lenses/jre/bin/keytool \
                         -importkeystore -noprompt -v \
                         -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
                         -alias service \
