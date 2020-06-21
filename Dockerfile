@@ -1,17 +1,11 @@
 ARG LENSES_ARCHIVE=remote
 # Lenses Archive
-ARG AD_UN
-ARG AD_PW
-ARG AD_FILENAME=lenses-3.2.1-linux64.tar.gz
-ARG AD_URL=https://archive.landoop.com/lenses/3.2/$AD_FILENAME
-# For custom builds
-ARG UI_FILENAME
+ARG AD_URL=https://archive.landoop.com/lenses/3.2/lenses-3.2.1-linux64.tar.gz
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
 ONBUILD ARG AD_UN
 ONBUILD ARG AD_PW
-ONBUILD ARG AD_FILENAME
 ONBUILD ARG AD_URL
 ONBUILD RUN apk add --no-cache wget \
         && echo "progress = dot:giga" | tee /etc/wgetrc \
