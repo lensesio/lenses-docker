@@ -1,3 +1,46 @@
+ARG LENSES_ARCHIVE=remote
+# Lenses Archive
+ARG AD_UN
+ARG AD_PW
+ARG AD_FILENAME=lenses-3.2.1-linux64.tar.gz
+ARG AD_URL=https://archive.landoop.com/lenses/3.2/$AD_FILENAME
+# For custom builds
+ARG UI_FILENAME
+
+# This is the default image we use for installing Lenses
+FROM alpine as archive_remote
+ONBUILD ARG AD_UN
+ONBUILD ARG AD_PW
+ONBUILD ARG AD_FILENAME
+ONBUILD ARG AD_URL
+ONBUILD RUN apk add --no-cache wget \
+        && echo "progress = dot:giga" | tee /etc/wgetrc \
+        && mkdir -p /opt  \
+        && echo "$AD_URL $AD_FILENAME" \
+        && if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
+        && tar xf /lenses.tgz -C /opt \
+        && rm /lenses.tgz
+
+# This image gets Lenses from a local file instead of a remote URL
+FROM alpine as archive_local
+ONBUILD ARG AD_FILENAME
+ONBUILD RUN mkdir -p /opt
+ONBUILD ADD $AD_FILENAME /opt
+
+# This image gets a custom Lenses frontend from a local file
+FROM archive_local as archive_local_with_ui
+ONBUILD ARG UI_FILENAME
+ONBUILD ADD $UI_FILENAME /opt
+ONBUILD RUN rm -rf /opt/lenses/ui \
+            && mv /opt/dist /opt/lenses/ui \
+            && sed \
+                 -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses/ui/build.info | cut -f 2 -d ' ')/" \
+                 -i /opt/lenses/bin/lenses
+
+# This image is here to just trigger the build of any of the above 3 images
+FROM archive_${LENSES_ARCHIVE} as archive
+
+# The final Lenses image
 FROM debian:latest
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
@@ -18,13 +61,8 @@ RUN apt-get update && apt-get install -y \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
 
-# Install lenses
-ARG AD_UN
-ARG AD_PW
-ARG AD_URL=https://archive.landoop.com/lenses/3.2/lenses-3.2.1-linux64.tar.gz
-RUN if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
-    && tar xf /lenses.tgz -C /opt \
-    && rm /lenses.tgz
+# Add Lenses
+COPY --from=archive /opt /opt
 
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
