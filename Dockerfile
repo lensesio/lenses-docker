@@ -1,6 +1,6 @@
 ARG LENSES_ARCHIVE=remote
 # Lenses Archive
-ARG AD_URL=https://archive.landoop.com/lenses/3.2/lenses-3.2.1-linux64.tar.gz
+ARG AD_URL=https://archive.landoop.com/lenses/3.2/lenses-3.2.2-linux64.tar.gz
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
