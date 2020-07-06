@@ -55,9 +55,6 @@ RUN apt-get update && apt-get install -y \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
 
-# Add Lenses
-COPY --from=archive /opt /opt
-
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
 RUN mkdir -p /opt/landoop/ \
@@ -74,6 +71,11 @@ RUN wget "$FASTDATA_SD_URL" -O /fdsd.tgz \
 ADD setup.sh debug-setup.sh service-discovery.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh /usr/local/bin/service-discovery.sh
 COPY /filesystem /
+
+# PLACEHOLDER: This line can be used to inject code if needed, please do not remove #
+
+# Add Lenses
+COPY --from=archive /opt /opt
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
