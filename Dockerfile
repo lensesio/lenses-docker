@@ -41,6 +41,7 @@ MAINTAINER Marios Andreopoulos <marios@lenses.io>
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y \
         curl \
+        default-jre-headless \
         gosu \
         netcat \
         wget \
