@@ -1,6 +1,10 @@
-ARG LENSES_ARCHIVE=remote
 # Lenses Archive
+ARG LENSES_ARCHIVE=remote
 ARG AD_URL=https://archive.lenses.io/lenses/4.0/lenses-4.0.4-linux64.tar.gz
+# Lenses Cli
+ARG LENSESCLI_ARCHIVE=remote
+ARG LC_VERSION="4.0.3"
+ARG LC_URL="https://archive.lenses.io/lenses/4.0/cli/lenses-cli-linux-amd64-$LC_VERSION.tar.gz"
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
@@ -33,6 +37,27 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
 
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} as archive
+
+# This is the default image we use for installing lenses-cli
+FROM alpine as lenses_cli_remote
+ONBUILD ARG CAD_UN
+ONBUILD ARG CAD_PW
+ONBUILD ARG LC_VERSION
+ONBUILD ARG LC_URL
+ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
+          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-linux-amd64-$LC_VERSION/lenses-cli \
+          && rm -f /lenses-cli.tgz
+
+# This image gets Lenses from a local file instead of a remote URL
+FROM alpine as lenses_cli_local
+ONBUILD ARG LC_FILENAME
+ONBUILD RUN mkdir -p /lenses-cli
+ONBUILD COPY $LC_FILENAME /lenses-cli.tgz
+ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin
+
+# This image is here to just trigger the build of any of the above 3 images
+ARG LENSESCLI_ARCHIVE
+FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
 
 # The final Lenses image
 FROM debian:latest
@@ -77,6 +102,10 @@ COPY /filesystem /
 
 # Add Lenses
 COPY --from=archive /opt /opt
+
+# Add Lenses CLI
+ARG LC_VERSION
+COPY --from=lenses_cli /usr/bin/lenses-cli /usr/bin/lenses-cli
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
