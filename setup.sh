@@ -25,7 +25,7 @@ export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
-OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS"
+OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS LENSES_APPEND_CONF"
 OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
@@ -34,9 +34,7 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_P
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CHROOT"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_KUBERNETES_PROCESSOR_JAAS LENSES_ALERTING_PLUGIN_CONFIG_ICON_URL"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_KAFKA_SETTINGS_CLIENT_SASL_JAAS_CONFIG LENSES_KAFKA_SETTINGS_PRODUCER_SASL_JAAS_CONFIG"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_KAFKA_SETTINGS_CONSUMER_SASL_JAAS_CONFIG LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_SASL_JAAS_CONFIG"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERTING_PLUGIN_CONFIG_ICON_URL"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_BASIC_PASSWORD_RULES_REGEX LENSES_SECURITY_BASIC_PASSWORD_RULES_DESC"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERT_MANAGER_SOURCE LENSES_ALERT_MANAGER_ENDPOINTS" # Deprecated settings. We keep them to avoid breaking Lenses for people who forget to remove them.
 
@@ -53,6 +51,12 @@ OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS LENSES_KAFKA LEN
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_METRICS_PORT LENSES_KAFKA_CONNECT_CLUSTERS LENSES_CONNECTORS_INFO"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ALERT_PLUGINS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS" # These are deprecated but keep them so we protect users from suboptimal upgrades.
+
+# Some variables should be literals. Like all jaas settings which though we autodetect
+OPTS_LITERAL="LENSES_KAFKA_SETTINGS_CLIENT_SASL_JAAS_CONFIG"
+# Deprecated literals
+OPTS_LITERAL="$OPTS_LITERAL LENSES_KAFKA_SETTINGS_PRODUCER_SASL_JAAS_CONFIG LENSES_KAFKA_SETTINGS_CONSUMER_SASL_JAAS_CONFIG"
+OPTS_LITERAL="$OPTS_LITERAL LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_SASL_JAAS_CONFIG LENSES_KUBERNETES_PROCESSOR_JAAS"
 
 OPTS_SENSITIVE="LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS" # These are deprecated but keep them so we protect users from suboptimal upgrades.
@@ -182,7 +186,7 @@ function process_variable {
         return 0
     fi
 
-    # If settings must not have quotes, write without quotes
+    # If settings must not have quotes, write without quotes.
     # shellcheck disable=SC2076
     if [[ "$OPTS_NEEDNOQUOTE" =~ " $var " ]]; then
         echo "${conf}=${!var}" >> "$config_file"
@@ -191,11 +195,11 @@ function process_variable {
             unset "${var}"
         # Special case, these may include a password.
         elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
-                     "$var" == LENSES_KAFKA_METRICS ||
-                     "$var" == LENSES_ZOOKEEPER_HOSTS ||
-                     "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
-                     "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
-                     "$var" == LENSES_ALERT_PLUGINS ]] && grep -sq password <<<"${!var}"; then
+                    "$var" == LENSES_KAFKA_METRICS ||
+                    "$var" == LENSES_ZOOKEEPER_HOSTS ||
+                    "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
+                    "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
+                    "$var" == LENSES_ALERT_PLUGINS ]] && grep -sq password <<<"${!var}"; then
             echo "${conf}=********"
             unset "${var}"
         else
@@ -204,7 +208,21 @@ function process_variable {
         return 0
     fi
 
-    # Else try to detect if we need quotes
+    # Process settings that include 'sasl.jaas.config' which we know is literal
+    # and needs to be triple quoted. Treat always as sensitive.
+    # shellcheck disable=SC2076
+    if [[ "$var" =~ SASL_JAAS_CONFIG ||
+              "$OPTS_LITERAL" =~ " $var " ]]; then
+        # Remove any leading and trailing single and double quotes and use triple quotes
+        # so we will work with anything we might receive (literal, or quoted)
+        echo "${conf}=\"\"\"$(echo "${!var}" | sed -r -e 's/^"*//' -e 's/"*$//' -e "s/^'*//"  -e "s/'*$//")\"\"\"" >> $config_file
+        echo "${conf}=********"
+        unset "${var}"
+        return 0
+    fi
+
+    # Else try to detect if we need quotes.
+    # Skip options that include 'sasl.jaas.config'.
     if [[ "${!var}" =~ .*[?:,()*/|#!+].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> "$config_file"
@@ -733,6 +751,25 @@ if [[ -f /mnt/settings/security.append.conf ]]; then
     DETECTED_SECAPPENDFILE=true
 fi
 
+# Append Advanced Configuration via Env Vars (experimental)
+DETECTED_LENAPPENDVAR=false
+if [[ -n ${LENSES_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG ]]; then
+    echo -e "\n# LENSES_APPEND_CONF" >> /data/lenses.conf
+    echo "${LENSES_APPEND_CONF}" >> /data/lenses.conf
+    echo "Appending advanced configuration via LENSES_APPEND_CONF to lenses.conf"
+    DETECTED_LENAPPENDVAR=true
+fi
+DETECTED_SECAPPENDVAR=false
+if [[ -n ${SECURITY_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG  ]]; then
+    echo -e "\n# SECURITY_APPEND_CONF" >> /data/security.conf
+    echo "${SECURITY_APPEND_CONF}" >> /data/security.conf
+    echo "Appending advanced configuration via LENSES_SECURITY_CONF to security.conf."
+    if [[ $DETECTED_SECCUSTOMFILE == true ]]; then
+        echo "WARN: advanced configuration snippet may fail to be applied to user provided security.conf file."
+    fi
+    DETECTED_SECAPPENDVAR=true
+fi
+
 # Clear empty values (just in case)
 sed '/^\s*[^=]*=\s*$/d' -i /data/lenses.conf /data/security.conf
 
@@ -844,6 +881,13 @@ fi
 if [[ $DETECTED_SECAPPENDFILE =~ $TRUE_REG ]]; then
     echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
 fi
+if [[ $DETECTED_LENAPPENDVAR =~ $TRUE_REG && $EXPERIMENTAL =~ $TRUE_REG ]]; then
+    echo "You set the LENSES_APPEND_CONF environment variable. It may override some autodetected settings."
+fi
+if [[ $DETECTED_SECAPPENDVAR =~ $TRUE_REG && $EXPERIMENTAL =~ $TRUE_REG ]]; then
+    echo "You set the SECURITY_APPEND_CONF environment variable. It may override some autodetected settings."
+fi
+
 echo "Docker environment initialized. Starting Lenses."
 echo "================================================"
 
