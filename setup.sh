@@ -357,9 +357,15 @@ create_keystore_from_pem() {
     rm -rf /tmp/vlxjre /tmp/keystore.p12
 }
 
+# Convert FILECONTENT_* env vars to files, so we can process them like the rest
+mkdir -p /tmp/filecontent
+for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
+    echo "${!var}" >> "/tmp/filecontent/${var}"
+done
+
 # Find side files (SSL trust/key stores, jaas, krb5) shared via
-# mounts/secrets and process them
-for setting in $(find /mnt/settings /mnt/secrets /run/secrets -type f -name 'FILECONTENT_*' 2>/dev/null); do
+# mounts/secrets/env vars and process them
+for setting in $(find /mnt/settings /mnt/secrets /run/secrets /tmp/filecontent -type f -name 'FILECONTENT_*' 2>/dev/null); do
     DECODE="$(detect_file_decode_utility "${setting}")"
     case "$setting" in
         */FILECONTENT_SSL_KEYSTORE)
@@ -567,6 +573,7 @@ EOF
             ;;
     esac
 done
+rm -rf /tmp/filecontent
 
 # If not explicit security file set auto-generated:
 DETECTED_SECCUSTOMFILE=false
