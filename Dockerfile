@@ -4,7 +4,7 @@ ARG AD_URL=https://archive.lenses.io/lenses/4.1/lenses-4.1.0-linux64.tar.gz
 # Lenses Cli
 ARG LENSESCLI_ARCHIVE=remote
 ARG LC_VERSION="4.1.0"
-ARG LC_URL="https://archive.lenses.io/lenses/4.0/cli/lenses-cli-linux-amd64-$LC_VERSION.tar.gz"
+ARG LC_URL="https://archive.lenses.io/lenses/4.1/cli/lenses-cli-linux-amd64-$LC_VERSION.tar.gz"
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
