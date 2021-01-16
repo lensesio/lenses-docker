@@ -49,7 +49,7 @@ OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTR
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_JMX_BROKERS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS LENSES_KAFKA LENSES_KAFKA_METRICS LENSES_KAFKA LENSES_KAFKA_METRICS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_METRICS_PORT LENSES_KAFKA_CONNECT_CLUSTERS LENSES_CONNECTORS_INFO"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ALERT_PLUGINS"
+OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ALERT_PLUGINS LENSES_SQL_UDF_PACKAGES"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS" # These are deprecated but keep them so we protect users from suboptimal upgrades.
 
 # Some variables should be literals. Like all jaas settings which though we autodetect
@@ -215,7 +215,7 @@ function process_variable {
               "$OPTS_LITERAL" =~ " $var " ]]; then
         # Remove any leading and trailing single and double quotes and use triple quotes
         # so we will work with anything we might receive (literal, or quoted)
-        echo "${conf}=\"\"\"$(echo "${!var}" | sed -r -e 's/^"*//' -e 's/"*$//' -e "s/^'*//"  -e "s/'*$//")\"\"\"" >> $config_file
+        echo "${conf}=\"\"\"$(echo "${!var}" | sed -r -e 's/^"*//' -e 's/"*$//' -e "s/^'*//"  -e "s/'*$//")\"\"\"" >> "$config_file"
         echo "${conf}=********"
         unset "${var}"
         return 0
@@ -285,52 +285,6 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     fi
 done
 
-# Find side files (SSL trust/key stores, jaas, krb5) shared via
-# mounts/secrets and load them as temp env vars
-BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
-# Mounts
-# This may be fragile according to shellcheck but it's ok for our use case and
-# we can require from users to not have filenames with spaces, etc.
-# shellcheck disable=SC2044
-for fileSetting in $(find /mnt/settings -name "FILECONTENT_*"); do
-    ENCODE="cat"
-    # Do not be smart here and feed fileSetting into tr, because that way
-    # you get an extra line at the end, which breaks the base64 detection
-    # shellcheck disable=SC2002
-    if cat "$fileSetting" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-        ENCODE="base64"
-    fi
-    fileSettingClean="$(basename "$fileSetting")"
-    export "${fileSettingClean}"="$($ENCODE "$fileSetting")"
-    echo "Found $fileSetting"
-done
-# Secret mounts
-# shellcheck disable=SC2044
-for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
-    ENCODE="cat"
-    # shellcheck disable=SC2002
-    if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-        ENCODE="base64"
-    fi
-    fileSecretClean="$(basename "$fileSecret")"
-    export "${fileSecretClean}"="$($ENCODE "$fileSecret")"
-    echo "Found $fileSecret"
-done
-# Docker Swarm (older versions) only export to /run/secrets
-if [[ -d /run/secrets ]]; then
-    # shellcheck disable=SC2044
-    for fileSecret in $(find /mnt/secrets -name "FILECONTENT_*"); do
-        ENCODE="cat"
-        # shellcheck disable=SC2002
-        if cat "$fileSecret" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-            ENCODE="base64"
-        fi
-        fileSecretClean="$(basename "$fileSecret")"
-        export "${fileSecretClean}"="$($ENCODE "$fileSecret")"
-        echo "Found $fileSecret"
-    done
-fi
-
 # Function to add a configuration if it does not already exists, in order to
 # deal with settings that may be added via more that one FILECONTENT_ entries.
 add_conf_if_not_exists(){
@@ -347,345 +301,279 @@ EOF
     fi
 }
 
-# Process them
+# Function that takes a file as an argument and returns 'base64 -d' if the file
+# seems to be encoded in base64, or 'cat' if it's not.
+BASE64_REGEXP="^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{4}|[A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)$"
+detect_file_decode_utility() {
+    local DECODE="cat"
+    if ! cat "${1}" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
+        DECODE="base64 -d"
+    fi
+    echo "${DECODE}"
+}
+
+# Function that creates a truststore from a PEM file. Takes an input and output
+# file as parameters. Password is hardcoded to 'changeit'.
+create_truststore_from_pem() {
+    # Awesome awk script to split pem files with many certificates from
+    # https://stackoverflow.com/a/29997111
+    local NUM_CERTS=$(grep -c 'END CERTIFICATE' "$1")
+    for N in $(seq 0 $((NUM_CERTS - 1))); do
+        ALIAS="${1%.*}-$N"
+        cat "${1}" \
+            | awk "n==$N { print }; /END CERTIFICATE/ { n++ }" \
+            | /usr/bin/keytool \
+                  -importcert \
+                  -noprompt \
+                  -trustcacerts \
+                  -keystore "$2" \
+                  -alias "${ALIAS}" \
+                  -storepass changeit
+        rm -rf /tmp/vlxjre
+    done
+}
+
+# Function that creates a keystore file from a private key and a certificate
+# files in pem format. Takes the private key, certificate, and keystore to
+# write as parameters. It cannot be run in parallel. Password and key passphrase
+# are hardcoded to 'changeit'
+create_keystore_from_pem() {
+    openssl pkcs12 -export \
+            -inkey "${1}" \
+            -in "${2}" \
+            -out /tmp/keystore.p12 \
+            -name service \
+            -passout pass:changeit
+    /usr/bin/keytool \
+        -importkeystore \
+        -noprompt -v \
+        -srckeystore /tmp/keystore.p12 \
+        -srcstoretype PKCS12 \
+        -srcstorepass changeit \
+        -alias service \
+        -deststorepass changeit \
+        -destkeypass changeit \
+        -destkeystore "${3}"
+    rm -rf /tmp/vlxjre /tmp/keystore.p12
+}
+
+# Convert FILECONTENT_* env vars to files, so we can process them like the rest
+mkdir -p /tmp/filecontent
 for var in $(printenv | grep -E "^FILECONTENT_" | sed -e 's/=.*//'); do
-    case "$var" in
-        FILECONTENT_SSL_KEYSTORE)
-            if [[ -n $FILECONTENT_SSL_KEYSTORE ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SSL_KEYSTORE" > /data/keystore.jks
-                chmod 400 /data/keystore.jks
-                cat <<EOF >>/data/lenses.conf
+    echo "${!var}" >> "/tmp/filecontent/${var}"
+done
+
+# Find side files (SSL trust/key stores, jaas, krb5) shared via
+# mounts/secrets/env vars and process them
+for setting in $(find /mnt/settings /mnt/secrets /run/secrets /tmp/filecontent -type f -name 'FILECONTENT_*' 2>/dev/null); do
+    DECODE="$(detect_file_decode_utility "${setting}")"
+    case "$setting" in
+        */FILECONTENT_SSL_KEYSTORE)
+            $DECODE < "${setting}" > /data/keystore.jks
+            chmod 400 /data/keystore.jks
+            cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
-lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
 EOF
-                # TODO: Use add_conf_if_not_exists to add processor settings
-                # in order to avoid forcing users to use lenses.append.conf
-                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-                unset FILECONTENT_SSL_KEYSTORE
-            fi
+            # TODO: Use add_conf_if_not_exists to add processor settings
+            # in order to avoid forcing users to use lenses.append.conf
+            echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
             ;;
-        FILECONTENT_SSL_TRUSTSTORE)
-            if [[ -n $FILECONTENT_SSL_TRUSTSTORE ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SSL_TRUSTSTORE" > /data/truststore.jks
-                chmod 400 /data/truststore.jks
-                cat <<EOF >>/data/lenses.conf
+        */FILECONTENT_SSL_TRUSTSTORE)
+            $DECODE < "${setting}" > /data/truststore.jks
+            chmod 400 /data/truststore.jks
+            cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.client.ssl.truststore.location=/data/truststore.jks
-lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
 EOF
-                echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
-                unset FILECONTENT_SSL_TRUSTSTORE
-            fi
+            echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
             ;;
-        FILECONTENT_SSL_CACERT_PEM)
-            if [[ -n $FILECONTENT_SSL_CACERT_PEM ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SSL_CACERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SSL_CACERT_PEM" > /tmp/cacert.pem
-                /usr/bin/keytool \
-                    -importcert -noprompt \
-                    -keystore /data/truststore.jks \
-                    -alias ca \
-                    -file /tmp/cacert.pem \
-                    -storepass changeit
-                rm -rf /tmp/cacert.pem /tmp/vlxjre
-                chmod 400 /data/truststore.jks
-                cat <<EOF >>/data/lenses.conf
+        */FILECONTENT_SSL_CACERT_PEM)
+            $DECODE < "${setting}" > /tmp/cacert.pem
+            create_truststore_from_pem /tmp/cacert.pem /data/truststore.jks
+            rm -rf /tmp/cacert.pem
+            chmod 400 /data/truststore.jks
+            cat <<EOF >>/data/lenses.conf
 lenses.kafka.settings.client.ssl.truststore.location=/data/truststore.jks
 lenses.kafka.settings.client.ssl.truststore.password=changeit
-
-lenses.kubernetes.processor.kafka.settings.ssl.truststore.location=/data/truststore.jks
-lenses.kubernetes.processor.kafka.settings.ssl.truststore.password=changeit
 EOF
-                echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
-                unset FILECONTENT_SSL_CACERT_PEM
-            fi
+            echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
             ;;
-        FILECONTENT_SSL_CERT_PEM)
-            if [[ -n $FILECONTENT_SSL_CERT_PEM ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SSL_CERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SSL_CERT_PEM" > /tmp/cert.pem
-                if [[ -f /tmp/key.pem ]]; then
-                    openssl pkcs12 -export \
-                            -in /tmp/cert.pem -inkey /tmp/key.pem \
-                            -out /tmp/keystore.p12 \
-                            -name service \
-                            -passout pass:changeit
-                    /usr/bin/keytool \
-                        -importkeystore -noprompt -v \
-                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                        -alias service \
-                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
-                    rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
-                    chmod 400 /data/keystore.jks
-                    cat <<EOF >> /data/lenses.conf
+        */FILECONTENT_SSL_CERT_PEM)
+            $DECODE < "${setting}" > /tmp/cert.pem
+            if [[ -f /tmp/key.pem ]]; then
+                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/keystore.jks
+                rm -rf /tmp/cert.pem /tmp/key.pem
+                chmod 400 /data/keystore.jks
+                cat <<EOF >> /data/lenses.conf
 lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.client.ssl.keystore.password=changeit
 lenses.kafka.settings.client.ssl.key.password=changeit
-
-lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
-lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
-lenses.kubernetes.processor.kafka.settings.ssl.key.password=changeit
 EOF
-                    echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-                fi
-                unset FILECONTENT_SSL_CERT_PEM
+                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
             fi
             ;;
-        FILECONTENT_SSL_KEY_PEM)
-            if [[ -n $FILECONTENT_SSL_KEY_PEM ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SSL_KEY_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SSL_KEY_PEM" > /tmp/key.pem
-                if [[ -f /tmp/cert.pem ]]; then
-                    openssl pkcs12 -export \
-                            -in /tmp/cert.pem -inkey /tmp/key.pem \
-                            -out /tmp/keystore.p12 \
-                            -name service \
-                            -passout pass:changeit
-                    /usr/bin/keytool \
-                        -importkeystore -noprompt -v \
-                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                        -alias service \
-                        -deststorepass changeit -destkeypass changeit -destkeystore /data/keystore.jks
-                    rm -rf /tmp/cert.pem /tmp/key.pem /tmp/keystore.p12 /tmp/vlxjre
-                    chmod 400 /data/keystore.jks
-                    cat <<EOF >> /data/lenses.conf
+        */FILECONTENT_SSL_KEY_PEM)
+            $DECODE < "${setting}" > /tmp/key.pem
+            if [[ -f /tmp/cert.pem ]]; then
+                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/keystore.jks
+                rm -rf /tmp/cert.pem /tmp/key.pem
+                chmod 400 /data/keystore.jks
+                cat <<EOF >> /data/lenses.conf
 lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
 lenses.kafka.settings.client.ssl.keystore.password=changeit
 lenses.kafka.settings.client.ssl.key.password=changeit
-
-lenses.kubernetes.processor.kafka.settings.ssl.keystore.location=/data/keystore.jks
-lenses.kubernetes.processor.kafka.settings.ssl.keystore.password=changeit
-lenses.kubernetes.processor.kafka.settings.ssl.key.password=changeit
 EOF
-                    echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-                fi
-                unset FILECONTENT_SSL_KEY_PEM
+                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
             fi
             ;;
-        FILECONTENT_LENSES_SSL_KEYSTORE)
-            if [[ -n $FILECONTENT_LENSES_SSL_KEYSTORE ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_LENSES_SSL_KEYSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_LENSES_SSL_KEYSTORE" > /data/lenses.jks
+        */FILECONTENT_SCHEMAREGISTRY_SSL_KEYSTORE)
+            $DECODE < "${setting}" > /data/schemaregistry-keystore.jks
+            chmod 400 /data/schemaregistry-keystore.jks
+            cat <<EOF >>/data/lenses.conf
+lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
+EOF
+            # TODO: Use add_conf_if_not_exists to add processor settings
+            # in order to avoid forcing users to use lenses.append.conf
+            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
+            ;;
+        */FILECONTENT_SCHEMAREGISTRY_SSL_TRUSTSTORE)
+            $DECODE < "${setting}" > /data/schemaregistry-truststore.jks
+            chmod 400 /data/schemaregistry-truststore.jks
+            cat <<EOF >>/data/lenses.conf
+lenses.schema.registry.ssl.truststore.location=/data/schemaregistry-truststore.jks
+EOF
+            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-truststore.jks)"
+            ;;
+        */FILECONTENT_SCHEMAREGISTRY_SSL_CACERT_PEM)
+            $DECODE < "${setting}" > /tmp/cacert.pem
+            create_truststore_from_pem /tmp/cacert.pem /data/schemaregistry-truststore.jks
+            rm -rf /tmp/cacert.pem
+            chmod 400 /data/schemaregistry-truststore.jks
+            cat <<EOF >>/data/lenses.conf
+lenses.schema.registry.ssl.truststore.location=/data/schemaregistry-truststore.jks
+lenses.schema.registry.ssl.truststore.password=changeit
+EOF
+            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-truststore.jks)"
+            ;;
+        */FILECONTENT_SCHEMAREGISTRY_SSL_CERT_PEM)
+            $DECODE < "${setting}" > /tmp/cert.pem
+            if [[ -f /tmp/key.pem ]]; then
+                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/schemaregistry-keystore.jks
+                rm -rf /tmp/cert.pem /tmp/key.pem
+                chmod 400 /data/schemaregistry-keystore.jks
+                cat <<EOF >> /data/lenses.conf
+lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
+lenses.schema.registry.ssl.keystore.password=changeit
+lenses.schema.registry.ssl.key.password=changeit
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
+            fi
+            ;;
+        */FILECONTENT_SCHEMAREGISTRY_SSL_KEY_PEM)
+            $DECODE < "${setting}" > /tmp/key.pem
+            if [[ -f /tmp/cert.pem ]]; then
+                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/schemaregistry-keystore.jks
+                rm -rf /tmp/cert.pem /tmp/key.pem
+                chmod 400 /data/schemaregistry-keystore.jks
+                cat <<EOF >> /data/lenses.conf
+lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
+lenses.schema.registry.ssl.keystore.password=changeit
+lenses.schema.registry.ssl.key.password=changeit
+EOF
+                echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
+            fi
+            ;;
+        */FILECONTENT_LENSES_SSL_KEYSTORE)
+            $DECODE < "${setting}" > /data/lenses.jks
+            chmod 400 /data/lenses.jks
+            cat <<EOF >>/data/lenses.conf
+lenses.ssl.keystore.location=/data/lenses.jks
+EOF
+            # TODO: Use add_conf_if_not_exists to add processor settings
+            # in order to avoid forcing users to use lenses.append.conf
+            echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
+            ;;
+        */FILECONTENT_LENSES_SSL_TRUSTSTORE)
+            $DECODE < "${setting}" > /data/lenses-truststore.jks
+            chmod 400 /data/lenses-truststore.jks
+            cat <<EOF >>/data/lenses.conf
+lenses.ssl.truststore.location=/data/lenses-truststore.jks
+EOF
+            echo "File created. Sha256sum: $(sha256sum /data/lenses-truststore.jks)"
+            ;;
+        */FILECONTENT_LENSES_SSL_KEY_PEM)
+            $DECODE < "${setting}" > /tmp/lenseskey.pem
+            if [[ -f /tmp/lensescert.pem ]]; then
+                create_keystore_from_pem /tmp/lenseskey.pem /tmp/lensescert.pem /data/lenses.jks
+                rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem
                 chmod 400 /data/lenses.jks
-                cat <<EOF >>/data/lenses.conf
+                cat <<EOF >> /data/lenses.conf
 lenses.ssl.keystore.location=/data/lenses.jks
+lenses.ssl.keystore.password="changeit"
+lenses.ssl.key.password="changeit"
 EOF
-                # TODO: Use add_conf_if_not_exists to add processor settings
-                # in order to avoid forcing users to use lenses.append.conf
                 echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
-                unset FILECONTENT_LENSES_SSL_KEYSTORE
             fi
             ;;
-        FILECONTENT_LENSES_SSL_KEY_PEM)
-            if [[ -n $FILECONTENT_LENSES_SSL_KEY_PEM ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_LENSES_SSL_KEY_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_LENSES_SSL_KEY_PEM" > /tmp/lenseskey.pem
-                if [[ -f /tmp/lensescert.pem ]]; then
-                    openssl pkcs12 -export \
-                            -in /tmp/lensescert.pem -inkey /tmp/lenseskey.pem \
-                            -out /tmp/keystore.p12 \
-                            -name service \
-                            -passout pass:changeit
-                    /usr/bin/keytool \
-                        -importkeystore -noprompt -v \
-                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                        -alias service \
-                        -deststorepass changeit -destkeypass changeit -destkeystore /data/lenses.jks
-                    rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem /tmp/keystore.p12 /tmp/vlxjre
-                    chmod 400 /data/lenses.jks
-                    cat <<EOF >> /data/lenses.conf
+        */FILECONTENT_LENSES_SSL_CERT_PEM)
+            $DECODE < "${setting}" > /tmp/lensescert.pem
+            if [[ -f /tmp/lenseskey.pem ]]; then
+                create_keystore_from_pem /tmp/lenseskey.pem /tmp/lensescert.pem /data/lenses.jks
+                rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem
+                chmod 400 /data/lenses.jks
+                cat <<EOF >> /data/lenses.conf
 lenses.ssl.keystore.location=/data/lenses.jks
 lenses.ssl.keystore.password="changeit"
 lenses.ssl.key.password="changeit"
 EOF
-                    echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
-                fi
-                unset FILECONTENT_LENSES_SSL_KEY_PEM
+                echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
             fi
             ;;
-        FILECONTENT_LENSES_SSL_CERT_PEM)
-            if [[ -n $FILECONTENT_LENSES_SSL_CERT_PEM ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_LENSES_SSL_CERT_PEM" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_LENSES_SSL_CERT_PEM" > /tmp/lensescert.pem
-                if [[ -f /tmp/lenseskey.pem ]]; then
-                    openssl pkcs12 -export \
-                            -in /tmp/lensescert.pem -inkey /tmp/lenseskey.pem \
-                            -out /tmp/keystore.p12 \
-                            -name service \
-                            -passout pass:changeit
-                    /usr/bin/keytool \
-                        -importkeystore -noprompt -v \
-                        -srckeystore /tmp/keystore.p12 -srcstoretype PKCS12 -srcstorepass changeit \
-                        -alias service \
-                        -deststorepass changeit -destkeypass changeit -destkeystore /data/lenses.jks
-                    rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem /tmp/keystore.p12 /tmp/vlxjre
-                    chmod 400 /data/lenses.jks
-                    cat <<EOF >> /data/lenses.conf
-lenses.ssl.keystore.location=/data/lenses.jks
-lenses.ssl.keystore.password="changeit"
-lenses.ssl.key.password="changeit"
-EOF
-                    echo "File created. Sha256sum: $(sha256sum /data/lenses.jks)"
-                fi
-                unset FILECONTENT_LENSES_SSL_CERT_PEM
-            fi
+        */FILECONTENT_JAAS)
+            $DECODE < "${setting}" > /data/jaas.conf
+            chmod 400 /data/jaas.conf
+            export LENSES_OPTS="$LENSES_OPTS -Djava.security.auth.login.config=/data/jaas.conf"
+            echo "File created. Sha256sum: $(sha256sum /data/jaas.conf)"
             ;;
-        FILECONTENT_JAAS)
-            if [[ -n $FILECONTENT_JAAS ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_JAAS" > /data/jaas.conf
-                chmod 400 /data/jaas.conf
-                export LENSES_OPTS="$LENSES_OPTS -Djava.security.auth.login.config=/data/jaas.conf"
-                echo "File created. Sha256sum: $(sha256sum /data/jaas.conf)"
-                unset FILECONTENT_JAAS
-            fi
+        */FILECONTENT_KRB5)
+            $DECODE < "${setting}" > /data/krb5.conf
+            chmod 400 /data/krb5.conf
+            export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
+            echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
             ;;
-        FILECONTENT_PROCESSOR_JAAS)
-            if [[ -n $FILECONTENT_PROCESSOR_JAAS ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_PROCESSOR_JAAS" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_PROCESSOR_JAAS" > /data/jaas-processor.conf
-                chmod 400 /data/jaas-processor.conf
-                cat <<EOF >> /data/lenses.conf
-lenses.kubernetes.processor.jaas="/data/jaas-processor.conf"
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/jaas-processor.conf)"
-                unset FILECONTENT_PROCESSOR_JAAS
-            fi
+        */FILECONTENT_KEYTAB)
+            $DECODE < "${setting}" > /data/keytab
+            chmod 400 /data/keytab
+            add_conf_if_not_exists \
+                /data/security.conf \
+                'lenses.security.kerberos.keytab="/data/keytab"'
+            echo "File created. Sha256sum: $(sha256sum /data/keytab)"
             ;;
-        FILECONTENT_KRB5)
-            if [[ -n $FILECONTENT_KRB5 ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_KRB5" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_KRB5" > /data/krb5.conf
-                chmod 400 /data/krb5.conf
-                export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
-                cat <<EOF >> /data/lenses.conf
-lenses.kubernetes.processor.krb5="/data/krb5.conf"
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
-                unset FILECONTENT_KRB5
-            fi
-            ;;
-        FILECONTENT_KEYTAB)
-            if [[ -n $FILECONTENT_KEYTAB ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_KEYTAB" > /data/keytab
-                chmod 400 /data/keytab
-                # Later on we may overwrite some of these settings for
-                # lenses.conf and security.conf with specific keytabs
-                cat <<EOF >>/data/lenses.conf
-lenses.kubernetes.processor.kafka.settings.keytab="/data/keytab"
-EOF
-                add_conf_if_not_exists \
-                    /data/lenses.conf \
-                    'lenses.schema.registry.keytab="/data/keytab"'
-                add_conf_if_not_exists \
-                    /data/lenses.conf \
-                    'lenses.kubernetes.processor.schema.registry.keytab="/data/keytab"'
-                add_conf_if_not_exists \
-                    /data/security.conf \
-                    'lenses.security.kerberos.keytab="/data/keytab"'
-                echo "File created. Sha256sum: $(sha256sum /data/keytab)"
-                unset FILECONTENT_KEYTAB
-            fi
-            ;;
-        FILECONTENT_SECURITY_KEYTAB)
-            if [[ -n $FILECONTENT_SECURITY_KEYTAB ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_SECURITY_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_SECURITY_KEYTAB" > /data/security-keytab
-                chmod 400 /data/security-keytab
-                sed '/lenses.security.kerberos.keytab=/d' -i /data/security.conf
-                cat <<EOF >> /data/security.conf
+        */FILECONTENT_SECURITY_KEYTAB)
+            $DECODE < "${setting}" > /data/security-keytab
+            chmod 400 /data/security-keytab
+            sed '/lenses.security.kerberos.keytab=/d' -i /data/security.conf
+            cat <<EOF >> /data/security.conf
 lenses.security.kerberos.keytab=/data/security-keytab
 EOF
-                echo "File created. Sha256sum: $(sha256sum /data/security-keytab)"
-                unset FILECONTENT_SECURITY_KEYTAB
-            fi
+            echo "File created. Sha256sum: $(sha256sum /data/security-keytab)"
             ;;
-        FILECONTENT_REGISTRY_KEYTAB)
-            if [[ -n $FILECONTENT_REGISTRY_KEYTAB ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_REGISTRY_KEYTAB" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_REGISTRY_KEYTAB" > /data/registry-keytab
-                chmod 400 /data/registry-keytab
-                sed '/lenses.schema.registry.keytab=/d;/lenses.kubernetes.processor.schema.registry.keytab=/d' \
-                    -i /data/lenses.conf
-                cat <<EOF >> /data/lenses.conf
-lenses.schema.registry.keytab="/data/registry-keytab"
-lenses.kubernetes.processor.schema.registry.keytab="/data/registry-keytab"
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/registry-keytab)"
-                unset FILECONTENT_REGISTRY_KEYTAB
-            fi
+        */FILECONTENT_JVM_SSL_TRUSTSTORE)
+            $DECODE < "${setting}" > /data/jvm-truststore.jks
+            echo "File created. Sha256sum: $(sha256sum /data/jvm-truststore.jks)"
+            chmod 400 /data/jvm-truststore.jks
+            export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStore=/data/jvm-truststore.jks"
             ;;
-        FILECONTENT_JVM_SSL_TRUSTSTORE)
-            if [[ -n $FILECONTENT_JVM_SSL_TRUSTSTORE ]]; then
-                DECODE="cat"
-                if ! echo -n "$FILECONTENT_JVM_SSL_TRUSTSTORE" | tr -d '\n' | grep -vsqE "$BASE64_REGEXP" ; then
-                    DECODE="base64 -d"
-                fi
-                $DECODE <<< "$FILECONTENT_JVM_SSL_TRUSTSTORE" > /data/jvm-truststore.jks
-                echo "File created. Sha256sum: $(sha256sum /data/jvm-truststore.jks)"
-                chmod 400 /data/jvm-truststore.jks
-                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStore=/data/jvm-truststore.jks"
-                unset FILECONTENT_JVM_SSL_TRUSTSTORE
-            fi
-            ;;
-        FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD)
-            if [[ -n $FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD ]]; then
-                export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStorePassword=${FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD}"
-                unset FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD
-            fi
+        */FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD)
+            # Password cannot be in base64 because we cannot distinguish between
+            # base64 and text in this case
+            export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStorePassword=$(cat "${setting}")"
             ;;
         *)
-            echo "Unknown filecontent variable $var was provided but won't be used."
+            echo "Unknown filecontent at '$setting' was provided but won't be used."
             ;;
     esac
 done
-
-# # Fix for case sensitive LDAP setting:
-# sed -r -e 's/^lenses\.security\.ldap\.memberof\.key=/lenses.security.ldap.memberOf.key=/' -i /data/lenses.conf
+rm -rf /tmp/filecontent
 
 # If not explicit security file set auto-generated:
 DETECTED_SECCUSTOMFILE=false
