@@ -223,7 +223,7 @@ function process_variable {
 
     # Else try to detect if we need quotes.
     # Skip options that include 'sasl.jaas.config'.
-    if [[ "${!var}" =~ .*[?:,()*/|#!+].* ]]; then
+    if [[ "${!var}" =~ .*[?:,.()*/|#!+].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> "$config_file"
     else
