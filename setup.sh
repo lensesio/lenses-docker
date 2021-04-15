@@ -205,7 +205,7 @@ function process_variable {
     fi
 
     # Else try to detect if we need quotes
-    if [[ "${!var}" =~ .*[?:,()*/|#!+].* ]]; then
+    if [[ "${!var}" =~ .*[?:,.()*/|#!+].* ]]; then
         echo -n "[Variable needed quotes] "
         echo "${conf}=\"${!var}\"" >> "$config_file"
     else
