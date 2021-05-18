@@ -2,7 +2,7 @@
 
 INSTALL_LIST=""
 
-for i in procps emacs24-nox vim htop curl dnsutils lsof net-tools; do
+for i in procps emacs24-nox vim htop curl dnsutils lsof net-tools tcpdump; do
     echo "Install $i?"
     select yn in "Yes" "No"; do
         case $yn in
