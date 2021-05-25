@@ -242,14 +242,18 @@ DETECTED_LENFILE=false
 if [[ -f /mnt/settings/lenses.conf ]]; then
     echo "Detected /mnt/settings/lenses.conf. Will use that and ignore any environment variables!"
     cp /mnt/settings/lenses.conf /data/lenses.conf
-    DETECTED_LENFILE=true
+    if [[ $LC_KUBERNETES_MODE != true ]]; then
+        DETECTED_LENFILE=true
+    fi
 fi
 
 DETECTED_SECFILE=false
 if [[ -f /mnt/secrets/security.conf ]]; then
     echo "Detected /mnt/secrets/security.conf. Will use that and ignore any environment variables!"
     cp /mnt/secrets/security.conf /data/security.conf
-    DETECTED_SECFILE=true
+    if [[ $LC_KUBERNETES_MODE != true ]]; then
+        DETECTED_SECFILE=true
+    fi
 fi
 
 # Create an empty security.conf to keep lenses happy
