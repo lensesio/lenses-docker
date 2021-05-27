@@ -266,13 +266,13 @@ fi
 
 # Add an separator to prepare for the autodetection of the env vars
 # This line is important or else the first env var fails under certain circumstances
-if [[ "$DETECTED_LENFILE" == "false" ]]; then
+if [[ $DETECTED_LENFILE == false && $LC_KUBERNETES_MODE == true ]]; then
     echo -e "\n# Auto-detected env vars\n" >> /data/lenses.conf
 fi
 
 # Add an separator to prepare for the autodetection of the env vars
 # This line is important or else the first env var fails under certain circumstances
-if [[ "$DETECTED_SECFILE" == "false" ]]; then
+if [[ $DETECTED_SECFILE == false && $LC_KUBERNETES_MODE == true ]]; then
     echo -e "\n# Auto-detected env vars\n" >> /data/security.conf
 fi
 
