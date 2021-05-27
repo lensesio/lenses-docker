@@ -30,6 +30,7 @@ OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
@@ -240,18 +241,20 @@ function process_variable {
 
 DETECTED_LENFILE=false
 if [[ -f /mnt/settings/lenses.conf ]]; then
-    echo "Detected /mnt/settings/lenses.conf. Will use that and ignore any environment variables!"
+    echo "Detected /mnt/settings/lenses.conf."
     cp /mnt/settings/lenses.conf /data/lenses.conf
     if [[ $LC_KUBERNETES_MODE != true ]]; then
+        echo "Will use file detected and ignore any environment variables!"
         DETECTED_LENFILE=true
     fi
 fi
 
 DETECTED_SECFILE=false
 if [[ -f /mnt/secrets/security.conf ]]; then
-    echo "Detected /mnt/secrets/security.conf. Will use that and ignore any environment variables!"
+    echo "Detected /mnt/secrets/security.conf."
     cp /mnt/secrets/security.conf /data/security.conf
     if [[ $LC_KUBERNETES_MODE != true ]]; then
+        echo "Will use file detected and ignore any environment variables!"
         DETECTED_SECFILE=true
     fi
 fi
@@ -261,12 +264,24 @@ if [[ ! -f /data/security.conf ]]; then
     touch /data/security.conf
 fi
 
+# Add an separator to prepare for the autodetection of the env vars
+# This line is important or else the first env var fails under certain circumstances
+if [[ $DETECTED_LENFILE == false && $LC_KUBERNETES_MODE == true ]]; then
+    echo -e "\n# Auto-detected env vars\n" >> /data/lenses.conf
+fi
+
+# Add an separator to prepare for the autodetection of the env vars
+# This line is important or else the first env var fails under certain circumstances
+if [[ $DETECTED_SECFILE == false && $LC_KUBERNETES_MODE == true ]]; then
+    echo -e "\n# Auto-detected env vars\n" >> /data/security.conf
+fi
+
 # Rename env vars and write settings or export OPTS
 for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
     # Try to detect some envs set by kubernetes and/or docker link and skip them.
     if [[ "$var" =~ [^=]+TCP_(PORT|ADDR).* ]] \
-           || [[ "$var" =~ [^=]+_[0-9]{1,5}_(TCP|UDP).* ]] \
-           || [[ "$var" =~ [^=]+_SERVICE_PORT.* ]]; then
+        || [[ "$var" =~ [^=]+_[0-9]{1,5}_(TCP|UDP).* ]] \
+        || [[ "$var" =~ [^=]+_SERVICE_PORT.* ]]; then
         echo "Skipping variable probably set by container supervisor: $var"
         continue
     fi
