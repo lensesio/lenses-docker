@@ -1,9 +1,9 @@
 # Lenses Archive
 ARG LENSES_ARCHIVE=remote
-ARG AD_URL=https://archive.lenses.io/lenses/4.2/lenses-4.2.5-linux64.tar.gz
+ARG AD_URL=https://archive.lenses.io/lenses/4.2/lenses-4.2.6-linux64.tar.gz
 # Lenses Cli
 ARG LENSESCLI_ARCHIVE=remote
-ARG LC_VERSION="4.2.2"
+ARG LC_VERSION="4.2.3"
 ARG LC_URL="https://archive.lenses.io/lenses/4.2/cli/lenses-cli-linux-amd64-$LC_VERSION.tar.gz"
 
 # This is the default image we use for installing Lenses
