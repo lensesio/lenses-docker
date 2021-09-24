@@ -349,7 +349,8 @@ create_truststore_from_pem() {
                   -trustcacerts \
                   -keystore "$2" \
                   -alias "${ALIAS}" \
-                  -storepass changeit
+                  -storepass changeit \
+                  -storetype JKS
         rm -rf /tmp/vlxjre
     done
 }
@@ -374,7 +375,8 @@ create_keystore_from_pem() {
         -alias service \
         -deststorepass changeit \
         -destkeypass changeit \
-        -destkeystore "${3}"
+        -destkeystore "${3}" \
+        -deststoretype JKS
     rm -rf /tmp/vlxjre /tmp/keystore.p12
 }
 
