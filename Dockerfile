@@ -60,7 +60,7 @@ ARG LENSESCLI_ARCHIVE
 FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
 
 # The final Lenses image
-FROM debian:latest
+FROM debian:bullseye
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
 # Update, install tooling and some basic setup
