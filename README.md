@@ -64,10 +64,6 @@ services:
     image: lensesio/lenses
     environment:
       LENSES_PORT: 9991
-      LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
-
-      # # If you have enabled JMX for your brokers, set the port here
-      # LENSES_KAFKA_METRICS_DEFAULT_PORT: 9581
 
       # # If you use AVRO, configure the Schema Registry
       # LENSES_SCHEMA_REGISTRY_URLS: |
