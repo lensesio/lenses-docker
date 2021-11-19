@@ -26,7 +26,7 @@ export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS LENSES_APPEND_CONF"
-OPTS_NEEDQUOTE="LENSES_LICENSE_FILE LENSES_KAFKA_BROKERS"
+OPTS_NEEDQUOTE="LENSES_KAFKA_BROKERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
@@ -60,7 +60,7 @@ OPTS_LITERAL="LENSES_KAFKA_SETTINGS_CLIENT_SASL_JAAS_CONFIG"
 OPTS_LITERAL="$OPTS_LITERAL LENSES_KAFKA_SETTINGS_PRODUCER_SASL_JAAS_CONFIG LENSES_KAFKA_SETTINGS_CONSUMER_SASL_JAAS_CONFIG"
 OPTS_LITERAL="$OPTS_LITERAL LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_SASL_JAAS_CONFIG LENSES_KUBERNETES_PROCESSOR_JAAS"
 
-OPTS_SENSITIVE="LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD LICENSE LICENSE_URL"
+OPTS_SENSITIVE="LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS" # These are deprecated but keep them so we protect users from suboptimal upgrades.
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD" # These are deprecated but keep them so we protect users from suboptimal upgrades.
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD" # These are deprecated but keep them so we protect users from suboptimal upgrades.
@@ -607,42 +607,6 @@ else
     DETECTED_SECCUSTOMFILE=true
 fi
 
-# If not explicit license path
-if ! grep -sqE '^lenses.license.file=' /data/lenses.conf; then
-    echo -e "\\nlenses.license.file=/data/license.json" >> /data/lenses.conf
-# Take care of  license path
-    if [[ -f /license.json ]]; then
-        cp /license.json /data/license.json
-    elif [[ -f /mnt/secrets/license.json ]]; then
-        cp /mnt/secrets/license.json /data/license.json
-    elif [[ -n "$LICENSE" ]] && [[ ! -f /data/license.json ]]; then
-        echo "$LICENSE" >> /data/license.json
-    elif [[ -n "$LICENSE_URL" ]] && [[ ! -f /data/license.json ]]; then
-        set +o errexit
-        __p_lver() {
-            source /build.info
-            echo "$LENSES_VERSION"
-        }
-        __p_bcom() {
-            source /build.info
-            echo "${BUILD_COMMIT::8}"
-        }
-        wget --user-agent="Lenses Docker (Lenses $(__p_lver); Commit: $(__p_bcom))" \
-             "$LICENSE_URL" -O /data/license.json
-        # shellcheck disable=SC2181
-        if [[ $? -ne 0 ]]; then
-            echo "ERROR! Could not download license. Maybe the link was wrong or the license expired?"
-            echo "       Please check and try again. If the problem persists contact Landoop."
-            exit 1
-        fi
-        if [[ $STRICT_SCRIPT =~ $TRUE_REG ]]; then set -o errexit; fi
-    elif [[ -f /data/license.json ]]; then
-        echo
-    else
-        echo -e "ERROR! No license was provided. Lenses will not work."
-    fi
-fi
-
 # Append Advanced Configuration Snippet
 DETECTED_LENAPPENDFILE=false
 if [[ -f /mnt/settings/lenses.append.conf ]]; then
@@ -707,7 +671,6 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/kafka-streams-state \
           /data/plugins \
           /data/storage \
-          /data/license.json \
           /data/lenses.conf \
           /data/security.conf \
           /data/logback.xml \
@@ -724,7 +687,6 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/plugins \
           /data/storage
     chmod 640 -f \
-          /data/license.json \
           /data/lenses.conf \
           /data/security.conf \
           /data/logback.xml \
