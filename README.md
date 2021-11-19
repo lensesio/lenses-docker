@@ -64,10 +64,6 @@ services:
     image: lensesio/lenses
     environment:
       LENSES_PORT: 9991
-      LENSES_KAFKA_BROKERS: "PLAINTEXT://broker.1.url:9092,PLAINTEXT://broker.2.url:9092"
-
-      # # If you have enabled JMX for your brokers, set the port here
-      # LENSES_KAFKA_METRICS_DEFAULT_PORT: 9581
 
       # # If you use AVRO, configure the Schema Registry
       # LENSES_SCHEMA_REGISTRY_URLS: |
@@ -134,7 +130,7 @@ the
 mount them under `/mnt/settings` and `/mnt/secrets` respectively —i.e
 `/mnt/settings/lenses.conf` and `/mnt/secrets/security.conf`. You can set either
 one or both together. Please for `lenses.conf` omit the settings
-`lenses.secret.file` and `lenses.license.file`. If by any chance you set them,
+`lenses.secret.file`. If by any chance you set them,
 you have to make sure lenses can find the files described in these settings.
 
 ### The license file
