@@ -16,10 +16,6 @@ SD_ZOOKEEPER_FILTER=${SD_ZOOKEEPER_FILTER:-}
 SD_ZOOKEEPER_PORT=${SD_ZOOKEEPER_PORT:-2181}
 SD_ZOOKEEPER_JMX_PORT=${SD_ZOOKEEPER_JMX_PORT:-}
 
-SD_REGISTRY_FILTER=${SD_REGISTRY_FILTER:-}
-SD_REGISTRY_PORT=${SD_REGISTRY_PORT:-8081}
-SD_REGISTRY_JMX_PORT=${SD_REGISTRY_JMX_PORT:-}
-
 # These are comma separated values
 SD_CONNECT_FILTERS=${SD_CONNECT_FILTERS:-}
 SD_CONNECT_NAMES=${SD_CONNECT_NAMES:-default}
@@ -32,7 +28,7 @@ SD_CONNECT_CONFIGS=${SD_CONNECT_CONFIGS:-connect-configs}
 TRUE_REG='^([tT][rR][uU][eE]|[yY]|[yY][eE][sS]|1)$'
 FALSE_REG='^([fF][aA][lL][sS][eE]|[nN]|[nN][oO]|0)$'
 
-rm -f /tmp/sd-broker /tmp/sd-zookeeper /tmp/sd-registry /tmp/sd-connect-tmp /tmp/sd-connect /tmp/service-discovery /tmp/service-discovery.log
+rm -f /tmp/sd-broker /tmp/sd-zookeeper /tmp/sd-connect-tmp /tmp/sd-connect /tmp/service-discovery /tmp/service-discovery.log
 
 if [[ -n $SD_BROKER_FILTER ]]; then
     if $FASTDATA_SD \
@@ -59,22 +55,6 @@ if [[ -n $SD_ZOOKEEPER_FILTER ]]; then
         echo | tee -a /tmp/service-discovery
     else
         echo "Zookeeper service autodiscovery failed."
-    fi
-fi
-
-if [[ -n $SD_REGISTRY_FILTER ]]; then
-    sr_jmx=""
-    if [[ -n $SD_REGISTRY_JMX_PORT ]]; then
-        sr_jmx="-jmx-port $SD_REGISTRY_JMX_PORT"
-    fi
-    if $FASTDATA_SD \
-           -mode=registry -port $SD_REGISTRY_PORT $sr_jmx \
-           addrs $SD_CONFIG \
-           $SD_REGISTRY_FILTER > /tmp/sd-registry 2>>/tmp/service-discovery.log; then
-        echo -n "export $(cat /tmp/sd-registry)" | tee -a /tmp/service-discovery
-        echo | tee -a /tmp/service-discovery
-    else
-        echo "Schema registry service autodiscovery failed."
     fi
 fi
 
@@ -158,4 +138,3 @@ if [[ -f /tmp/sd-connect ]]; then
     echo "export LENSES_CONNECT_CLUSTERS='[$(cat /tmp/sd-connect | sed -e 's/,$//')]'" | tee -a /tmp/service-discovery
     echo
 fi
-

@@ -26,7 +26,7 @@ export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS LENSES_APPEND_CONF"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_SCHEMA_REGISTRY LENSES_JMX_ZOOKEEPERS"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA LENSES_JMX_ZOOKEEPERS"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD"
@@ -45,7 +45,7 @@ OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERT_MANAGER_SOURCE LENSES_ALERT_MANAGER
 # or OPTS_NEEDNOQUOTE we try to autodetect if quotes are needed.
 OPTS_NEEDNOQUOTE="LENSES_CONNECT LENSES_CONNECT_CLUSTERS LENSES_JMX_CONNECT"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_UI_CONFIG_DISPLAY LENSES_KAFKA_TOPICS LENSES_SQL_CONNECT_CLUSTERS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS LENSES_SCHEMA_REGISTRY_URLS"
+OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ZOOKEEPER_HOSTS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS LENSES_KAFKA LENSES_KAFKA_METRICS LENSES_KAFKA LENSES_KAFKA_METRICS"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_METRICS_PORT LENSES_KAFKA_CONNECT_CLUSTERS LENSES_CONNECTORS_INFO"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_ALERT_PLUGINS LENSES_SQL_UDF_PACKAGES"
@@ -63,7 +63,7 @@ OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LEN
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD" # These are deprecated but keep them so we protect users from suboptimal upgrades.
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD" # These are deprecated but keep them so we protect users from suboptimal upgrades.
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD" # These are deprecated but keep them so we protect users from suboptimal upgrades.
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SCHEMA_REGISTRY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
 OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_ALERTING_PLUGIN_CONFIG_WEBHOOK_URL LENSES_ALERTING_PLUGIN_CONFIG_USERNAME LENSES_SSL_KEYSTORE_PASSWORD LENSES_SSL_KEY_PASSWORD"
@@ -195,7 +195,6 @@ function process_variable {
         elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
                     "$var" == LENSES_KAFKA_METRICS ||
                     "$var" == LENSES_ZOOKEEPER_HOSTS ||
-                    "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
                     "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
                     "$var" == LENSES_ALERT_PLUGINS ]] && grep -sq password <<<"${!var}"; then
             echo "${conf}=********"
@@ -441,63 +440,6 @@ lenses.kafka.settings.client.ssl.keystore.password=changeit
 lenses.kafka.settings.client.ssl.key.password=changeit
 EOF
                 echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-            fi
-            ;;
-        */FILECONTENT_SCHEMAREGISTRY_SSL_KEYSTORE)
-            $DECODE < "${setting}" > /data/schemaregistry-keystore.jks
-            chmod 400 /data/schemaregistry-keystore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
-EOF
-            # TODO: Use add_conf_if_not_exists to add processor settings
-            # in order to avoid forcing users to use lenses.append.conf
-            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
-            ;;
-        */FILECONTENT_SCHEMAREGISTRY_SSL_TRUSTSTORE)
-            $DECODE < "${setting}" > /data/schemaregistry-truststore.jks
-            chmod 400 /data/schemaregistry-truststore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.schema.registry.ssl.truststore.location=/data/schemaregistry-truststore.jks
-EOF
-            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-truststore.jks)"
-            ;;
-        */FILECONTENT_SCHEMAREGISTRY_SSL_CACERT_PEM)
-            $DECODE < "${setting}" > /tmp/cacert.pem
-            create_truststore_from_pem /tmp/cacert.pem /data/schemaregistry-truststore.jks
-            rm -rf /tmp/cacert.pem
-            chmod 400 /data/schemaregistry-truststore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.schema.registry.ssl.truststore.location=/data/schemaregistry-truststore.jks
-lenses.schema.registry.ssl.truststore.password=changeit
-EOF
-            echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-truststore.jks)"
-            ;;
-        */FILECONTENT_SCHEMAREGISTRY_SSL_CERT_PEM)
-            $DECODE < "${setting}" > /tmp/cert.pem
-            if [[ -f /tmp/key.pem ]]; then
-                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/schemaregistry-keystore.jks
-                rm -rf /tmp/cert.pem /tmp/key.pem
-                chmod 400 /data/schemaregistry-keystore.jks
-                cat <<EOF >> /data/lenses.conf
-lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
-lenses.schema.registry.ssl.keystore.password=changeit
-lenses.schema.registry.ssl.key.password=changeit
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
-            fi
-            ;;
-        */FILECONTENT_SCHEMAREGISTRY_SSL_KEY_PEM)
-            $DECODE < "${setting}" > /tmp/key.pem
-            if [[ -f /tmp/cert.pem ]]; then
-                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/schemaregistry-keystore.jks
-                rm -rf /tmp/cert.pem /tmp/key.pem
-                chmod 400 /data/schemaregistry-keystore.jks
-                cat <<EOF >> /data/lenses.conf
-lenses.schema.registry.ssl.keystore.location=/data/schemaregistry-keystore.jks
-lenses.schema.registry.ssl.keystore.password=changeit
-lenses.schema.registry.ssl.key.password=changeit
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/schemaregistry-keystore.jks)"
             fi
             ;;
         */FILECONTENT_LENSES_SSL_KEYSTORE)
