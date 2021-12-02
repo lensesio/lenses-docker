@@ -65,28 +65,6 @@ services:
     environment:
       LENSES_PORT: 9991
 
-      # # If you use AVRO, configure the Schema Registry
-      # LENSES_SCHEMA_REGISTRY_URLS: |
-      #   [
-      #     {url:"http://schema.registry.1.url:8081"},
-      #     {url:"http://schema.registry.2.url:8081"}
-      #   ]
-
-      # # If you use Kafka Connect, configure the workers.
-      # LENSES_KAFKA_CONNECT_CLUSTERS: |
-      #   [
-      #     {
-      #       name:"data_science",
-      #       urls: [
-      #         {url:"http://connect.worker.1.url:8083"},
-      #         {url:"http://connect.worker.2.url:8083"}
-      #       ],
-      #       statuses:"connect-statuses-cluster-a",
-      #       configs:"connect-configs-cluster-a",
-      #       offsets:"connect-offsets-cluster-a"
-      #     }
-      #   ]
-
       # # Zookeeper access is optional
       # LENSES_ZOOKEEPER_HOSTS: |
       #   [

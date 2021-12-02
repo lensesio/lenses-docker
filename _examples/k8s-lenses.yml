@@ -23,24 +23,6 @@ spec:
           [
             {url: "kafka:2181", jmx: "kafka:9585"}
           ]
-      - name: LENSES_SCHEMA_REGISTRY_URLS
-        value: |
-          [
-            {url: "http://kafka:8081", jmx: "kafka:9582"}
-          ]
-      - name: LENSES_KAFKA_CONNECT_CLUSTERS
-        value: |
-          [
-            {
-              name: "dev",
-              urls: [
-                {url: "http://kafka:8083", jmx: "kafka:9584"}
-              ],
-              statuses: "connect-statuses",
-              configs: "connect-configs",
-              offsets: "connect-offsets"
-            }
-          ]
       - name: LENSES_SECURITY_MODE
         value: BASIC
       - name: LENSES_HEAP_OPTS

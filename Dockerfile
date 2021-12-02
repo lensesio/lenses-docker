@@ -94,8 +94,8 @@ RUN wget "$FASTDATA_SD_URL" -O /fdsd.tgz \
     && tar xf /fdsd.tgz -C /usr/local/bin \
     && rm /fdsd.tgz
 
-ADD setup.sh debug-setup.sh service-discovery.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh /usr/local/bin/service-discovery.sh
+ADD setup.sh debug-setup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
 COPY /filesystem /
 
 # PLACEHOLDER: This line can be used to inject code if needed, please do not remove #
