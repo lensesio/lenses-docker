@@ -99,12 +99,6 @@ if [[ -d /run/secrets ]]; then
     done
 fi
 
-# Run fastdata-sd
-/usr/local/bin/service-discovery.sh
-if [[ -f /tmp/service-discovery ]]; then
-    source /tmp/service-discovery
-fi
-
 # Check for important settings that aren't explicitly set
 [[ -z $LENSES_PORT ]] \
     && echo "LENSES_PORT is not set via env var or individual file. Using default 9991."
@@ -192,8 +186,11 @@ function process_variable {
             echo "${conf}=********"
             unset "${var}"
         # Special case, these may include a password.
-        elif [[ "$var" == LENSES_KAFKA_METRICS ||
+        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
+                    "$var" == LENSES_KAFKA_METRICS ||
                     "$var" == LENSES_ZOOKEEPER_HOSTS ||
+                    "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
+                    "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
                     "$var" == LENSES_ALERT_PLUGINS ]] && grep -sq password <<<"${!var}"; then
             echo "${conf}=********"
             unset "${var}"
@@ -207,7 +204,7 @@ function process_variable {
     # and needs to be triple quoted. Treat always as sensitive.
     # shellcheck disable=SC2076
     if [[ "$var" =~ SASL_JAAS_CONFIG ||
-              "$OPTS_LITERAL" =~ " $var " ]]; then
+            "$OPTS_LITERAL" =~ " $var " ]]; then
         # Remove any leading and trailing single and double quotes and use triple quotes
         # so we will work with anything we might receive (literal, or quoted)
         echo "${conf}=\"\"\"$(echo "${!var}" | sed -r -e 's/^"*//' -e 's/"*$//' -e "s/^'*//"  -e "s/'*$//")\"\"\"" >> "$config_file"
