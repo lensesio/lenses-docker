@@ -138,6 +138,7 @@ OPTS_SENSITIVE=" $OPTS_SENSITIVE "
 
 # Remove configuration because it will be re-created.
 rm -f /data/lenses.conf
+rm -f /data/security.conf
 rm -rf /tmp/vlxjre
 
 # This takes as argument a variable name and detects if it contains sensitive data
