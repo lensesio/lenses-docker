@@ -67,6 +67,7 @@ MAINTAINER Marios Andreopoulos <marios@lenses.io>
 RUN apt-get update && apt-get install -y \
         curl \
         default-jre-headless \
+        dumb-init \
         gosu \
         netcat \
         wget \
@@ -74,9 +75,7 @@ RUN apt-get update && apt-get install -y \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
     && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
             -O /usr/local/bin/checkport \
-    && wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64 \
-            -O /usr/local/bin/dumb-init \
-    && chmod +755 /usr/local/bin/checkport /usr/local/bin/dumb-init \
+    && chmod +755 /usr/local/bin/checkport \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
@@ -126,5 +125,5 @@ RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/stora
     && chmod -R 777 /data
 VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage"]
 
-ENTRYPOINT ["/usr/local/bin/dumb-init", "--"]
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/local/bin/setup.sh"]
