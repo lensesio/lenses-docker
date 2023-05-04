@@ -87,12 +87,6 @@ RUN mkdir -p /opt/landoop/ \
     && tar xf /fda.tgz -C /opt/landoop \
     && rm /fda.tgz
 
-# Add fastdata-sd
-ARG FASTDATA_SD_URL=https://archive.landoop.com/tools/fastdata-sd/fastdata-sd.tar.gz
-RUN wget "$FASTDATA_SD_URL" -O /fdsd.tgz \
-    && tar xf /fdsd.tgz -C /usr/local/bin \
-    && rm /fdsd.tgz
-
 ADD setup.sh debug-setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
 COPY /filesystem /
