@@ -10,7 +10,7 @@ for ((i=0;i<$W_ITERATIONS;i++)); do
     # Because when we create a connector, connect rebalances which takes some
     # time, we don't want all checks to to trigger together, so we add some
     # random wait. It isn't a great solution, but it may help.
-    curl -sS "${W_CONNECT_ADDRESS}/connector-plugins/" \
+    wget -q -t 1 "${W_CONNECT_ADDRESS}/connector-plugins/" -O - \
         | grep "org.apache.kafka.connect.file.FileStreamSourceConnector" \
         && { sleep $(( RANDOM%(5*W_PERIOD_SECS) )); break; }
 done
