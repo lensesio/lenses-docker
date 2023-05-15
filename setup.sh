@@ -23,6 +23,8 @@ source /build.info
 export LT_PACKAGE=${LT_PACKAGE:-docker}
 export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 
+export PROMETHEUS_METRICS_PORT=${PROMETHEUS_METRICS_PORT:-9102}
+
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS LENSES_APPEND_CONF"
@@ -650,7 +652,9 @@ else
 fi
 
 # Enable fastdata_agent for exporting metrics to prometheus
-export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=9102:/opt/landoop/fast_data_monitoring/exporter.yml"
+if [[ $PROMETHEUS_METRICS_PORT -ne 0 ]]; then
+    export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=$PROMETHEUS_METRICS_PORT:/opt/landoop/fast_data_monitoring/exporter.yml"
+fi
 
 # If PAUSE_EXEC is set, we wait for 10 minutes before starting lenses.
 # This way we can go into the container and debug things before it exits.
