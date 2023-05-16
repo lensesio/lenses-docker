@@ -653,7 +653,7 @@ fi
 
 # Enable fastdata_agent for exporting metrics to prometheus
 if [[ $PROMETHEUS_METRICS_PORT -ne 0 ]]; then
-    export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/landoop/fast_data_monitoring/fastdata_agent.jar=$PROMETHEUS_METRICS_PORT:/opt/landoop/fast_data_monitoring/exporter.yml"
+    export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/lensesio/fast_data_monitoring/jmx_prometheus_javaagent.jar=$PROMETHEUS_METRICS_PORT:/opt/lensesio/fast_data_monitoring/exporter.yml"
 fi
 
 # If PAUSE_EXEC is set, we wait for 10 minutes before starting lenses.

@@ -37,6 +37,12 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
 
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} as archive
+# Add jmx_exporter
+ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
+RUN mkdir -p /opt/lensesio/ \
+    && wget "$FAST_DATA_AGENT_URL" -O /fda.tgz \
+    && tar xf /fda.tgz -C /opt/lensesio \
+    && rm /fda.tgz
 
 # This is the default image we use for installing lenses-cli
 FROM alpine as lenses_cli_remote
@@ -68,7 +74,6 @@ RUN apt-get update && apt-get install -y \
         default-jre-headless \
         dumb-init \
         gosu \
-        netcat \
         wget \
     && rm -rf /var/lib/apt/lists/* \
     && echo "progress = dot:giga" | tee /etc/wgetrc \
@@ -78,13 +83,6 @@ RUN apt-get update && apt-get install -y \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
-
-# Add jmx_exporter
-ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.1.tar.gz
-RUN mkdir -p /opt/landoop/ \
-    && wget "$FAST_DATA_AGENT_URL" -O /fda.tgz \
-    && tar xf /fda.tgz -C /opt/landoop \
-    && rm /fda.tgz
 
 ADD setup.sh debug-setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
