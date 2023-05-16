@@ -24,6 +24,7 @@ export LT_PACKAGE=${LT_PACKAGE:-docker}
 export LT_PACKAGE_VERSION=${LT_PACKAGE_VERSION:-$BUILD_COMMIT}
 
 export PROMETHEUS_METRICS_PORT=${PROMETHEUS_METRICS_PORT:-9102}
+DEBUG_TOOLS=${DEBUG_TOOLS:-false}
 
 WAIT_SCRIPT=${WAIT_SCRIPT:-}
 
@@ -596,6 +597,27 @@ C_GID="$(id -g)"
 # C_STATE_GID="$(stat -c '%g' /data/kafka-streams-state)"
 C_SUCMD=""
 C_SUID=""
+
+# If running as root and DEBUG_TOOLS is set, install tools for debugging
+if [[ "$C_UID" == 0 ]] && [[ $DEBUG_TOOLS =~ $TRUE_REG ]]; then
+    echo "Installing debugging tools. This can take a couple minutes."
+    apt update -qq
+    apt install -y \
+        curl \
+        dnsutils \
+        htop \
+        iproute2 \
+        iputils-ping \
+        lsof \
+        net-tools \
+        netcat \
+        procps \
+        tcpdump \
+        vim \
+        wget > /dev/null
+elif [[ "$C_UID" != 0 ]] && [[ $DEBUG_TOOLS =~ $TRUE_REG ]]; then
+    echo "WARN: DEBUG_TOOLS is set but you are not running as root. Ignoring."
+fi
 
 FORCE_ROOT_USER=${FORCE_ROOT_USER:-false}
 if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
