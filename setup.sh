@@ -127,12 +127,6 @@ fi
 # Set plugins directory if not explicitly set
 export LENSES_PLUGINS_CLASSPATH_OPTS=${LENSES_PLUGINS_CLASSPATH_OPTS:-/data/plugins}
 
-# Check for port availability
-if ! /usr/local/bin/checkport -port "$LENSES_PORT"; then
-    echo "ERROR! Lenses port (LENSES_PORT=$LENSES_PORT) is in use by some other program."
-    echo "       Lenses will probably fail to start."
-fi
-
 # Add prefix and suffix spaces, so our regexp check below will work.
 OPTS_JVM=" $OPTS_JVM "
 OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "

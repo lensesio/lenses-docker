@@ -66,7 +66,7 @@ ARG LENSESCLI_ARCHIVE
 FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
 
 # The final Lenses image
-FROM debian:bullseye
+FROM debian:bullseye-slim
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
 # Update, install tooling and some basic setup
@@ -74,12 +74,7 @@ RUN apt-get update && apt-get install -y \
         default-jre-headless \
         dumb-init \
         gosu \
-        wget \
     && rm -rf /var/lib/apt/lists/* \
-    && echo "progress = dot:giga" | tee /etc/wgetrc \
-    && wget https://gitlab.com/andmarios/checkport/uploads/3903dcaeae16cd2d6156213d22f23509/checkport \
-            -O /usr/local/bin/checkport \
-    && chmod +755 /usr/local/bin/checkport \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
             | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
