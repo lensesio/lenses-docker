@@ -66,11 +66,12 @@ ARG LENSESCLI_ARCHIVE
 FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
 
 # The final Lenses image
-FROM debian:bullseye-slim
+FROM ubuntu:22.04
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y \
+        curl \
         default-jre-headless \
         dumb-init \
         gosu \
