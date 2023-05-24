@@ -1,16 +1,15 @@
-# Lenses Archive
+ARG LENSES_BASE_VERSION=5.2
 ARG LENSES_ARCHIVE=remote
-ARG AD_URL=https://archive.lenses.io/lenses/5.2/lenses-5.2.0-linux64.tar.gz
-# Lenses Cli
+ARG LENSES_VERSION=5.2.0
 ARG LENSESCLI_ARCHIVE=remote
-ARG LC_VERSION="5.2.0"
-ARG LC_URL="https://archive.lenses.io/lenses/5.2/cli/lenses-cli-linux-amd64-$LC_VERSION.tar.gz"
+ARG LENSESCLI_VERSION=5.2.0
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
 ONBUILD ARG AD_UN
 ONBUILD ARG AD_PW
-ONBUILD ARG AD_URL
+ONBUILD ARG LENSES_VERSION LENSES_BASE_VERSION
+ONBUILD ARG AD_URL=https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/lenses-${LENSES_VERSION}-linux64.tar.gz
 ONBUILD RUN apk add --no-cache wget \
         && echo "progress = dot:giga" | tee /etc/wgetrc \
         && mkdir -p /opt  \
@@ -48,10 +47,11 @@ RUN mkdir -p /opt/lensesio/ \
 FROM alpine as lenses_cli_remote
 ONBUILD ARG CAD_UN
 ONBUILD ARG CAD_PW
-ONBUILD ARG LC_VERSION
-ONBUILD ARG LC_URL
+ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
+ONBUILD ARG TARGETARCH TARGETOS
+ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${TARGETOS}-${TARGETARCH}-${LENSESCLI_VERSION}.tar.gz"
 ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
-          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-linux-amd64-$LC_VERSION/lenses-cli \
+          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}-$LENSESCLI_VERSION/lenses-cli \
           && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
@@ -70,7 +70,7 @@ FROM ubuntu:22.04
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
 
 # Update, install tooling and some basic setup
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         default-jre-headless \
         dumb-init \
@@ -90,7 +90,6 @@ COPY /filesystem /
 COPY --from=archive /opt /opt
 
 # Add Lenses CLI
-ARG LC_VERSION
 COPY --from=lenses_cli /usr/bin/lenses-cli /usr/bin/lenses-cli
 
 ARG BUILD_BRANCH

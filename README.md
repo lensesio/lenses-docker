@@ -20,12 +20,12 @@ As a state-less application lenses fits naturally in containers and run on
 your streaming data pipelines; as well as operate them with confidence !
 
 The documentation is always available at https://docs.lenses.io and data
-engineering talk is on [Slack](https://launchpass.com/landoop-community)
+engineering talk is on [Discourse](https://ask.lenses.io) and [Slack](https://launchpass.com/landoop-community)
 
 ## The Docker Image
 
 **Please check out the
-[docker image documentation at docs.lenses.io](https://docs.lenses.io/install_setup/deployment-options/docker-deployment.html)
+[docker image documentation at docs.lenses.io](https://docs.lenses.io/current/installation/getting-started/docker/)
 for the most recent docs and the complete set of features, settings and tweak
 knobs.**
 
@@ -36,14 +36,14 @@ our [download page](https://lenses.io/downloads/) to get a free developer
 license or an enterprise trial.  Only Lenses is included in this docker. Our
 development environment image, which additionally includes Kafka, Connect,
 Schema Registry and our open-source Stream Reactor collection of connectors can
-be found as `landoop/kafka-lenses-dev`.
+be found as `lensesio/box`.
 
 This image has to be run alongside a Kafka cluster.
 
 
 ## How to run
 
-In the current iteration `landoop/lenses` uses environment variables as the
+In the current iteration `lensesio/lenses` uses environment variables as the
 primary means for configuration and alternatively configuration files.
 
 ### Setup with environment variables
@@ -65,13 +65,6 @@ services:
     environment:
       LENSES_PORT: 9991
 
-      # # Zookeeper access is optional
-      # LENSES_ZOOKEEPER_HOSTS: |
-      #   [
-      #     {url:"zookeeper.1.url:2181"},
-      #     {url:"zookeeper.2.url:2181"}
-      #   ]
-
       # # Users are managed within Lenses. Here you can change the superuser username:
       # LENSES_SECURITY_USER: admin
       # # Users are managed within Lenses. Here you can change the superuser password:
@@ -79,8 +72,6 @@ services:
     ports:
       - 9991:9991
       - 9102:9102
-    volumes:
-      - ./license.json:/license.json
     network_mode: host
 ```
 
@@ -104,22 +95,30 @@ environment variables but it is possible to set directly these files instead.
 
 Create your configuration files according to
 the
-[documentation](https://docs.lenses.io/install_setup/configuration/lenses-config.html) and
+[documentation](https://docs.lenses.io/current/installation/configuration/) and
 mount them under `/mnt/settings` and `/mnt/secrets` respectively —i.e
 `/mnt/settings/lenses.conf` and `/mnt/secrets/security.conf`. You can set either
 one or both together. Please for `lenses.conf` omit the settings
 `lenses.secret.file`. If by any chance you set them,
 you have to make sure lenses can find the files described in these settings.
 
-### The license file
+## How to build
 
-Lenses require a license file in order to start. It may be passed to the
-container via three methods:
+If you want to build the image yourself, you can just run:
 
-- As a file, mounted at /license.json or /mnt/secrets/license.json (e.g `-v
-  /path/to/license.json:/license.json`)
-- As the contents of the environment variable LICENSE (e.g `-e LICENSE="$(cat license.json)"`)
-- As a downloadable URL via LICENSE_URL (e.g `-e LICENSE_URL="https://license.url/"`)
+```bash
+docker build -t lensesiolocal/lenses .
+```
+
+If you are on an older version of Docker which does not support multi-arch
+builds, you can emulate a multi-arch build via args:
+
+```bash
+docker build \
+  --build-arg TARGETOS=linux --build-arg TARGETARCH=amd64 \
+  -t lensesiolocal/lenses .
+```
+
 
 ---
 
@@ -135,4 +134,4 @@ The Lenses Team.
 
 ---
 
-Copyright 2017-2019, Lenses.io Ltd
+Copyright 2017-2023, Lenses.io Ltd
