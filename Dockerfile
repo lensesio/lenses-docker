@@ -65,6 +65,56 @@ ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin
 ARG LENSESCLI_ARCHIVE
 FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
 
+# The final Lenses image for compatibility with older versions
+FROM debian:bullseye-slim as lenses_debian
+MAINTAINER Marios Andreopoulos <marios@lenses.io>
+
+# Update, install tooling and some basic setup
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        default-jre-headless \
+        dumb-init \
+        gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
+            | tee -a /root/.bashrc >> /etc/bash.bashrc \
+    && mkdir -p /mnt/settings /mnt/secrets
+
+ADD setup.sh debug-setup.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
+COPY /filesystem /
+
+# PLACEHOLDER: This line can be used to inject code if needed, please do not remove #
+
+# Add Lenses
+COPY --from=archive /opt /opt
+
+# Add Lenses CLI
+COPY --from=lenses_cli /usr/bin/lenses-cli /usr/bin/lenses-cli
+
+ARG BUILD_BRANCH
+ARG BUILD_COMMIT
+ARG BUILD_TIME
+ARG DOCKER_REPO=local
+RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+    && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
+    && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
+    && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
+    && echo "DOCKER_REPO=${DOCKER_REPO}"    | tee -a /build.info
+
+EXPOSE 9991
+
+WORKDIR /
+RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/storage \
+    && chmod -R 777 /data
+VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage"]
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/usr/local/bin/setup.sh"]
+
+
 # The final Lenses image
 FROM ubuntu:22.04
 MAINTAINER Marios Andreopoulos <marios@lenses.io>
