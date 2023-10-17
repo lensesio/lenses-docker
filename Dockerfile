@@ -1,8 +1,8 @@
 ARG LENSES_BASE_VERSION=5.3
 ARG LENSES_ARCHIVE=remote
-ARG LENSES_VERSION=5.3.0
+ARG LENSES_VERSION=5.3.1
 ARG LENSESCLI_ARCHIVE=remote
-ARG LENSESCLI_VERSION=5.3.0
+ARG LENSESCLI_VERSION=5.3.1
 
 # This is the default image we use for installing Lenses
 FROM alpine as archive_remote
