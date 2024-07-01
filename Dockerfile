@@ -5,7 +5,7 @@ ARG LENSESCLI_ARCHIVE=remote
 ARG LENSESCLI_VERSION=5.5.1
 
 # This is the default image we use for installing Lenses
-FROM alpine as archive_remote
+FROM alpine AS archive_remote
 ONBUILD ARG AD_UN
 ONBUILD ARG AD_PW
 ONBUILD ARG LENSES_VERSION LENSES_BASE_VERSION
@@ -19,13 +19,13 @@ ONBUILD RUN apk add --no-cache wget \
         && rm /lenses.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
-FROM alpine as archive_local
+FROM alpine AS archive_local
 ONBUILD ARG AD_FILENAME
 ONBUILD RUN mkdir -p /opt
 ONBUILD ADD $AD_FILENAME /opt
 
 # This image gets a custom Lenses frontend from a local file
-FROM archive_local as archive_local_with_ui
+FROM archive_local AS archive_local_with_ui
 ONBUILD ARG UI_FILENAME
 ONBUILD ADD $UI_FILENAME /opt
 ONBUILD RUN rm -rf /opt/lenses/ui \
@@ -35,7 +35,7 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
                  -i /opt/lenses/bin/lenses
 
 # This image is here to just trigger the build of any of the above 3 images
-FROM archive_${LENSES_ARCHIVE} as archive
+FROM archive_${LENSES_ARCHIVE} AS archive
 # Add jmx_exporter
 ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
 RUN mkdir -p /opt/lensesio/ \
@@ -44,7 +44,7 @@ RUN mkdir -p /opt/lensesio/ \
     && rm /fda.tgz
 
 # This is the default image we use for installing lenses-cli
-FROM alpine as lenses_cli_remote
+FROM alpine AS lenses_cli_remote
 ONBUILD ARG CAD_UN
 ONBUILD ARG CAD_PW
 ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
@@ -55,7 +55,7 @@ ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
           && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
-FROM alpine as lenses_cli_local
+FROM alpine AS lenses_cli_local
 ONBUILD ARG LC_FILENAME
 ONBUILD RUN mkdir -p /lenses-cli
 ONBUILD COPY $LC_FILENAME /lenses-cli.tgz
@@ -63,11 +63,14 @@ ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin
 
 # This image is here to just trigger the build of any of the above 3 images
 ARG LENSESCLI_ARCHIVE
-FROM lenses_cli_${LENSESCLI_ARCHIVE} as lenses_cli
+FROM lenses_cli_${LENSESCLI_ARCHIVE} AS lenses_cli
 
 # The final Lenses image for compatibility with older versions
-FROM debian:bullseye-slim as lenses_debian
-MAINTAINER Marios Andreopoulos <marios@lenses.io>
+FROM debian:bullseye-slim AS lenses_debian
+LABEL org.opencontainers.image.authors="Marios Andreopoulos <marios@lenses.io>"
+LABEL org.opencontainers.image.ref.name="lensesio/lenses"
+LABEL org.opencontainers.image.version=${LENSES_VERSION}
+LABEL org.opencontainers.imave.vendor="Lenses.io"
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -117,7 +120,11 @@ CMD ["/usr/local/bin/setup.sh"]
 
 # The final Lenses image
 FROM ubuntu:22.04
-MAINTAINER Marios Andreopoulos <marios@lenses.io>
+ARG LENSES_VERSION
+LABEL org.opencontainers.image.authors="Marios Andreopoulos <marios@lenses.io>"
+LABEL org.opencontainers.image.ref.name="lensesio/lenses"
+LABEL org.opencontainers.image.version=${LENSES_VERSION}
+LABEL org.opencontainers.imave.vendor="Lenses.io"
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
