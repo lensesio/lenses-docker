@@ -701,8 +701,8 @@ fi
 if [[ -n $WAIT_SCRIPT ]]; then
     if [[ -f $WAIT_SCRIPT ]]; then
         eval "$WAIT_SCRIPT"
-    elif [[ -f /usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT ]]; then
-        WAIT_SCRIPT="/usr/local/share/landoop/wait-scripts/$WAIT_SCRIPT"
+    elif [[ -f /usr/local/share/lensesio/wait-scripts/$WAIT_SCRIPT ]]; then
+        WAIT_SCRIPT="/usr/local/share/lensesio/wait-scripts/$WAIT_SCRIPT"
         eval "$WAIT_SCRIPT"
     else
         echo "Wait script not found. Waiting for 120 seconds."

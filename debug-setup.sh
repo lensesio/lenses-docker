@@ -22,11 +22,11 @@ echo "Install jmxterm to debug JMX connections?"
 select yn in "Yes" "No"; do
     case $yn in
         Yes)
-            mkdir -p /usr/share/landoop/tools/
+            mkdir -p /usr/share/lensesio/tools/
             wget https://archive.lenses.io/third-party/jmxterm/jmxterm-1.0.0-SNAPSHOT-uber.jar \
-                 -O /usr/share/landoop/tools/jmxterm-1.0.0.jar
-            echo "Installed at '/usr/share/landoop/tools/jmxterm-1.0.0.jar'."
-            echo "Run with: '/opt/lenses/jre/bin/java -jar /usr/share/landoop/tools/jmxterm-1.0.0.jar'"
+                 -O /usr/share/lensesio/tools/jmxterm-1.0.0.jar
+            echo "Installed at '/usr/share/lensesio/tools/jmxterm-1.0.0.jar'."
+            echo "Run with: '/opt/lenses/jre/bin/java -jar /usr/share/lensesio/tools/jmxterm-1.0.0.jar'"
             break;;
         No)
             break;;

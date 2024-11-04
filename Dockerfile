@@ -37,7 +37,7 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} AS archive
 # Add jmx_exporter
-ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
+ARG FAST_DATA_AGENT_URL=https://archive.lenses.io/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
 RUN mkdir -p /opt/lensesio/ \
     && wget "$FAST_DATA_AGENT_URL" -O /fda.tgz \
     && tar xf /fda.tgz -C /opt/lensesio \
