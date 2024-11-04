@@ -710,6 +710,25 @@ if [[ -n $WAIT_SCRIPT ]]; then
     fi
 fi
 
+# In demo mode, register ourselves with HQ.
+# We expect provisioning to set the agent key to the env var LENSESHQ_AGENT_KEY
+DEMO_HQ_ENV_NAME=${DEMO_HQ_ENV_NAME:-demo}
+if [[ -n $DEMO_HQ_URL && \
+          -n $DEMO_HQ_USER && \
+          -n $DEMO_HQ_PASSWORD ]]; then
+    echo "DEMO_HQ_URL, DEMO_HQ_USER, and DEMO_HQ_PASS are set."
+    echo "WARNING! We will try to register ourselves to HQ mode. This is insecure, meant only for demos."
+    for ((i=0;i<20;i++)); do curl -s -o /dev/null "$DEMO_HQ_URL" && break; sleep 3; done
+    LENSESHQ_AGENT_KEY="$(hq -a "$DEMO_HQ_URL" -u "$DEMO_HQ_USER" -p "$DEMO_HQ_PASSWORD" \
+       environments create --tier development --name "$DEMO_HQ_ENV_NAME" \
+        | grep -Eo "agent_key_[A-Za-z0-9_]+")"
+    if [[ -n $LENSESHQ_AGENT_KEY ]]; then
+        echo "Registered to HQ. Agent key: $LENSESHQ_AGENT_KEY"
+        export LENSESHQ_AGENT_KEY
+    else
+        echo "Failed to register to HQ."
+    fi
+fi
 
 # Print information about possible overrides.
 echo "Setup script finished."
