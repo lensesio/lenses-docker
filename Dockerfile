@@ -1,4 +1,4 @@
-ARG LENSES_BASE_VERSION=5.5
+ARG LENSES_BASE_VERSION=6.0
 ARG LENSES_ARCHIVE=remote
 ARG LENSES_VERSION=5.5.14
 ARG LENSESCLI_ARCHIVE=remote
@@ -37,7 +37,7 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} AS archive
 # Add jmx_exporter
-ARG FAST_DATA_AGENT_URL=https://archive.landoop.com/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
+ARG FAST_DATA_AGENT_URL=https://archive.lenses.io/tools/fast_data_monitoring/fast_data_monitoring-2.2.tar.gz
 RUN mkdir -p /opt/lensesio/ \
     && wget "$FAST_DATA_AGENT_URL" -O /fda.tgz \
     && tar xf /fda.tgz -C /opt/lensesio \
@@ -49,17 +49,18 @@ ONBUILD ARG CAD_UN
 ONBUILD ARG CAD_PW
 ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
 ONBUILD ARG TARGETARCH TARGETOS
-ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${TARGETOS}-${TARGETARCH}-${LENSESCLI_VERSION}.tar.gz"
+ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${LENSESCLI_VERSION}-${TARGETOS}-${TARGETARCH}.tar.gz"
 ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
-          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}-$LENSESCLI_VERSION/lenses-cli \
+          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}/hq \
           && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
 FROM alpine AS lenses_cli_local
 ONBUILD ARG LC_FILENAME
+ONBUILD ARG TARGETARCH TARGETOS
 ONBUILD RUN mkdir -p /lenses-cli
 ONBUILD COPY $LC_FILENAME /lenses-cli.tgz
-ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin
+ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin lenses-cli-${TARGETOS}-${TARGETARCH}/hq
 
 # This image is here to just trigger the build of any of the above 3 images
 ARG LENSESCLI_ARCHIVE
@@ -93,7 +94,7 @@ COPY /filesystem /
 COPY --from=archive /opt /opt
 
 # Add Lenses CLI
-COPY --from=lenses_cli /usr/bin/lenses-cli /usr/bin/lenses-cli
+COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
@@ -147,7 +148,7 @@ COPY /filesystem /
 COPY --from=archive /opt /opt
 
 # Add Lenses CLI
-COPY --from=lenses_cli /usr/bin/lenses-cli /usr/bin/lenses-cli
+COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
