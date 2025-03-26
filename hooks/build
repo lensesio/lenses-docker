@@ -62,9 +62,12 @@ docker buildx build \
        --build-arg "DOCKER_REPO=${DOCKER_REPO}" \
        ${TAGS_CMD} \
        .
-## Debian images
+## Debian images. We only support linux/amd64 here because we cater to old
+## operating systems with outdated docker versions that may not support
+## multi-arch builds. Note that our Debian images is arm64 compatible, we just
+## not build and publish this variant.
 docker buildx build \
-       --platform=linux/amd64,linux/arm64 \
+       --platform=linux/amd64 \
        --push \
        --build-arg "BUILD_BRANCH=${SOURCE_BRANCH}" \
        --build-arg "BUILD_COMMIT=${BUILD_COMMIT}" \
