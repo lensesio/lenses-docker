@@ -30,19 +30,21 @@ WAIT_SCRIPT=${WAIT_SCRIPT:-}
 OLD_QUOTING=${OLD_QUOTING:-0}
 
 OPTS_JVM="LENSES_OPTS LENSES_HEAP_OPTS LENSES_JMX_OPTS LENSES_LOG4J_OPTS LENSES_PERFORMANCE_OPTS LENSES_SERDE_CLASSPATH_OPTS LENSES_PLUGINS_CLASSPATH_OPTS LENSES_APPEND_CONF"
+OPTS_JVM="$OPTS_JVM LENSES_AGENT_APPEND_CONF SECURITY_APPEND_CONF"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_GRAFANA"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ACCESS_CONTROL_ALLOW_METHODS LENSES_ACCESS_CONTROL_ALLOW_ORIGIN"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
+OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_VERSION"
 OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_STORAGE_POSTGRES_PASSWORD"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_SECURITY_BASIC_PASSWORD_RULES_REGEX LENSES_SECURITY_BASIC_PASSWORD_RULES_DESC"
 # Deprecated settings. We keep them to avoid breaking Lenses for people who forget to remove them.
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERT_MANAGER_SOURCE LENSES_ALERT_MANAGER_ENDPOINTS"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_ALERTING_PLUGIN_CONFIG_ICON_URL"
-OPTS_NEEDQUOTE="$OPTS_NEEDQUOTE LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CHROOT LENSES_JMX_ZOOKEEPERS"
+OPTS_NEEDQUOTE_DEPR="LENSES_ALERT_MANAGER_SOURCE LENSES_ALERT_MANAGER_ENDPOINTS"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_ALERTING_PLUGIN_CONFIG_ICON_URL"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_TOPICS_ALERTS_STORAGE LENSES_ZOOKEEPER_CHROOT LENSES_JMX_ZOOKEEPERS"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_LDAP_URL LENSES_SECURITY_LDAP_BASE"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_LDAP_LOGIN_FILTER LENSES_SECURITY_LDAP_MEMBEROF_KEY"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_MEMBEROF_KEY LENSES_SECURITY_LDAP_GROUP_EXTRACT_REGEX"
+OPTS_NEEDQUOTE_DEPR="$OPTS_NEEDQUOTE_DEPR LENSES_SECURITY_BASIC_PASSWORD_RULES_REGEX LENSES_SECURITY_BASIC_PASSWORD_RULES_DESC"
 
 # We started with expicit setting conf options that need quoting (OPTS_NEEDQUOTE) but k8s (and docker linking)
 # can create settings that we process (env vars that start with 'LENSES_') and put into the conf file. Although
@@ -53,35 +55,41 @@ OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SQL_UDF_PACKAGES LENSES_UI_CONFIG_DIS
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KUBERNETES_NAMESPACES LENSES_KUBERNETES_NAMESPACES_INCLUSTER"
 OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_CONTROL_TOPICS LENSES_CONNECTORS_INFO"
 # Deprecated settings. We keep them to avoid breaking Lenses for people who forget to remove them.
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_CONNECT LENSES_JMX_CONNECT LENSES_ALERT_PLUGINS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SQL_CONNECT_CLUSTERS LENSES_ZOOKEEPER_HOSTS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA LENSES_KAFKA_METRICS LENSES_KAFKA LENSES_KAFKA_METRICS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_KAFKA_METRICS_PORT LENSES_SECURITY_USERS"
-OPTS_NEEDNOQUOTE="$OPTS_NEEDNOQUOTE LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS"
+OPTS_NEEDNOQUOTE_DEPR="LENSES_CONNECT LENSES_JMX_CONNECT LENSES_ALERT_PLUGINS"
+OPTS_NEEDNOQUOTE_DEPR="$OPTS_NEEDNOQUOTE_DEPR LENSES_SQL_CONNECT_CLUSTERS LENSES_ZOOKEEPER_HOSTS"
+OPTS_NEEDNOQUOTE_DEPR="$OPTS_NEEDNOQUOTE_DEPR LENSES_KAFKA LENSES_KAFKA_METRICS LENSES_KAFKA LENSES_KAFKA_METRICS"
+OPTS_NEEDNOQUOTE_DEPR="$OPTS_NEEDNOQUOTE_DEPR LENSES_KAFKA_METRICS_PORT LENSES_SECURITY_USERS"
+OPTS_NEEDNOQUOTE_DEPR="$OPTS_NEEDNOQUOTE_DEPR LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS LENSES_SECURITY_MAPPINGS"
 
 # Some variables should be literals. Like all jaas settings which though we autodetect
+OPTS_LITERAL=""
 # Deprecated literals
-OPTS_LITERAL="$OPTS_LITERAL LENSES_KAFKA_SETTINGS_PRODUCER_SASL_JAAS_CONFIG LENSES_KAFKA_SETTINGS_CONSUMER_SASL_JAAS_CONFIG"
-OPTS_LITERAL="$OPTS_LITERAL LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_SASL_JAAS_CONFIG LENSES_KUBERNETES_PROCESSOR_JAAS"
-OPTS_LITERAL="LENSES_KAFKA_SETTINGS_CLIENT_SASL_JAAS_CONFIG"
+OPTS_LITERAL_DEPR="LENSES_KAFKA_SETTINGS_PRODUCER_SASL_JAAS_CONFIG LENSES_KAFKA_SETTINGS_CONSUMER_SASL_JAAS_CONFIG"
+OPTS_LITERAL_DEPR="$OPTS_LITERAL_DEPR LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_SASL_JAAS_CONFIG LENSES_KUBERNETES_PROCESSOR_JAAS"
+OPTS_LITERAL_DEPR="$OPTS_LITERAL_DEPR LENSES_KAFKA_SETTINGS_CLIENT_SASL_JAAS_CONFIG"
 
-OPTS_SENSITIVE="LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_SAML_KEY_PASSWORD LENSES_SECURITY_SAML_KEYSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_JWT_HMAC_SECRET_KEY"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SSL_KEYSTORE_PASSWORD LENSES_SSL_KEY_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_HQ_AGENT_KEY"
+# Some variables are sensitive and should not be printed
+OPTS_SENSITIVE="LENSES_STORAGE_POSTGRES_PASSWORD"
 # These are deprecated but keep them so we protect users from suboptimal upgrades.
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO LENSES_SCHEMA_REGISTRY_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_ALERTING_PLUGIN_CONFIG_WEBHOOK_URL LENSES_ALERTING_PLUGIN_CONFIG_USERNAME"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEY_PASSWORD"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_SETTINGS_CLIENT_SSL_TRUSTSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_BASIC_AUTH_USER_INFO"
-OPTS_SENSITIVE="$OPTS_SENSITIVE LENSES_KAFKA_CONNECT_SSL_TRUSTSTORE_PASSWORD LENSES_KAFKA_CONNECT_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_CONNECT_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="LENSES_SECURITY_USERS LENSES_SECURITY_GROUPS LENSES_SECURITY_SERVICE_ACCOUNTS"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CONSUMER_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_CONSUMER_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_PRODUCER_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_PRODUCER_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_KSTREAM_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_KSTREAM_SSL_TRUSTSTORE_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_PRODUCER_BASIC_AUTH_USER_INFO LENSES_SCHEMA_REGISTRY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_CONSUMER_BASIC_AUTH_USER_INFO LENSES_KUBERNETES_PROCESSOR_KAFKA_SETTINGS_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KUBERNETES_PROCESSOR_SCHEMA_REGISTRY_SETTINGS_BASIC_AUTH_USER_INFO LENSES_KAFKA_METRICS_USER LENSES_KAFKA_METRICS_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_ALERTING_PLUGIN_CONFIG_WEBHOOK_URL LENSES_ALERTING_PLUGIN_CONFIG_USERNAME"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_SETTINGS_CLIENT_SSL_TRUSTSTORE_PASSWORD LENSES_KAFKA_SETTINGS_CLIENT_BASIC_AUTH_USER_INFO"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_KAFKA_CONNECT_SSL_TRUSTSTORE_PASSWORD LENSES_KAFKA_CONNECT_SSL_KEYSTORE_PASSWORD LENSES_KAFKA_CONNECT_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_SECURITY_USER LENSES_SECURITY_PASSWORD LENSES_SECURITY_LDAP_USER LENSES_SECURITY_LDAP_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_SECURITY_SAML_KEY_PASSWORD LENSES_SECURITY_SAML_KEYSTORE_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_SECURITY_JWT_HMAC_SECRET_KEY"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_SSL_KEYSTORE_PASSWORD LENSES_SSL_KEY_PASSWORD"
+OPTS_SENSITIVE_DEPR="$OPTS_SENSITIVE_DEPR LENSES_HQ_AGENT_KEY"
 
 # LOAD settings from files
 # This loop is fragile but we demand filenames that map to env vars anyway
@@ -111,13 +119,6 @@ if [[ -d /run/secrets ]]; then
     done
 fi
 
-# Check for important settings that aren't explicitly set
-[[ -z $LENSES_PORT ]] \
-    && echo "LENSES_PORT is not set via env var or individual file. Using default 9991."
-
-[[ -z $LENSES_SECURITY_PASSWORD ]] \
-    && echo "LENSES_SECURITY_PASSWORD is not set. You may be using the default password which is dangerous."
-
 # If 'lenses.sql.state.dir' is not explicitly set, set it automatically
 if [[ -z $LENSES_SQL_STATE_DIR ]]; then
     if [[ -z $LENSES_SQL_EXECUTION_MODE ]] || [[ $LENSES_SQL_EXECUTION_MODE == IN_PROC ]]; then
@@ -135,14 +136,16 @@ fi
 # Set plugins directory if not explicitly set
 export LENSES_PLUGINS_CLASSPATH_OPTS=${LENSES_PLUGINS_CLASSPATH_OPTS:-/data/plugins}
 
-# Add prefix and suffix spaces, so our regexp check below will work.
+# Add prefix and suffix spaces, so our regexp check below will work. Also add deprecated settings.
 OPTS_JVM=" $OPTS_JVM "
-OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE "
-OPTS_NEEDNOQUOTE=" $OPTS_NEEDNOQUOTE "
-OPTS_SENSITIVE=" $OPTS_SENSITIVE "
+OPTS_NEEDQUOTE=" $OPTS_NEEDQUOTE $OPTS_NEEDQUOTE_DEPR "
+OPTS_NEEDNOQUOTE=" $OPTS_NEEDNOQUOTE $OPTS_NEEDNOQUOTE_DEPR "
+OPTS_SENSITIVE=" $OPTS_SENSITIVE $OPTS_SENSITIVE_DEPR "
+OPTS_LITERAL=" $OPTS_LITERAL $OPTS_LITERAL_DEPR "
+OPTS_DEPRECATED=" $OPTS_NEEDQUOTE_DEPR $OPTS_NEEDNOQUOTE_DEPR $OPTS_SENSITIVE_DEPR $OPTS_LITERAL_DEPR "
 
 # Remove configuration because it will be re-created.
-rm -f /data/lenses.conf
+rm -f /data/lenses-agent.conf
 rm -f /data/security.conf
 rm -rf /tmp/vlxjre
 
@@ -159,7 +162,7 @@ function detect_sensitive_variable {
     return 1
 }
 
-# This takes as arguments a variable name and a file (lenses.conf or security.conf)
+# This takes as arguments a variable name and a file (lenses-agent.conf or security.conf)
 # and process the variable before adding it to the file (i.e convert to lowercase,
 # check if it needs quotes, etc).
 function process_variable {
@@ -170,6 +173,10 @@ function process_variable {
     conf="${var,,}"
     # Convert underscores in var name to stops
     conf="${conf//_/.}"
+
+    if [[ "$OPTS_DEPRECATED" =~ " $var " ]]; then
+        echo "WARN: Deprecated setting '$var' detected. Please remove it."
+    fi
 
     # If setting needs to be quoted, write with quotes
     # This is ok because we need to pattern match with the spaces, so ignore sc
@@ -192,36 +199,13 @@ function process_variable {
         if detect_sensitive_variable "$var"; then
             echo "${conf}=********"
             unset "${var}"
-        # Special case, these may include a password.
-        elif [[ "$var" == LENSES_CONNECT_CLUSTERS ||
-                    "$var" == LENSES_KAFKA_METRICS ||
-                    "$var" == LENSES_ZOOKEEPER_HOSTS ||
-                    "$var" == LENSES_SCHEMA_REGISTRY_URLS ||
-                    "$var" == LENSES_KAFKA_CONNECT_CLUSTERS ||
-                    "$var" == LENSES_ALERT_PLUGINS ]] && grep -sq password <<<"${!var}"; then
-            echo "${conf}=********"
-            unset "${var}"
         else
             echo "${conf}=${!var}"
         fi
         return 0
     fi
 
-    # Process settings that include 'sasl.jaas.config' which we know is literal
-    # and needs to be triple quoted. Treat always as sensitive.
-    # shellcheck disable=SC2076
-    if [[ "$var" =~ SASL_JAAS_CONFIG ||
-            "$OPTS_LITERAL" =~ " $var " ]]; then
-        # Remove any leading and trailing single and double quotes and use triple quotes
-        # so we will work with anything we might receive (literal, or quoted)
-        echo "${conf}=\"\"\"$(echo "${!var}" | sed -r -e 's/^"*//' -e 's/"*$//' -e "s/^'*//"  -e "s/'*$//")\"\"\"" >> "$config_file"
-        echo "${conf}=********"
-        unset "${var}"
-        return 0
-    fi
-
     # Else try to detect if we need quotes.
-    # Skip options that include 'sasl.jaas.config'.
     if [[ $OLD_QUOTING =~ $TRUE_REG ]]; then
         if [[ "${!var}" =~ .*[?:,.()*/|#!+].* ]]; then
             echo -n "[Variable needed quotes, old escaping] "
@@ -250,9 +234,20 @@ function process_variable {
 }
 
 DETECTED_LENFILE=false
-if [[ -f /mnt/settings/lenses.conf ]]; then
+if [[ -f /mnt/settings/lenses.conf && -f /mnt/settings/lenses-agent.conf ]]; then
+    echo "Detected both '/mnt/settings/lenses.conf' and '/mnt/settings/lenses-agent.conf'. You must use only one. Container will fail in 30 seconds."
+    sleep 30
+    exit 1
+elif [[ -f /mnt/settings/lenses-agent.conf ]]; then
+    echo "Detected /mnt/settings/lenses-agent.conf."
+    cp /mnt/settings/lenses-agent.conf /data/lenses-agent.conf
+    if [[ $LC_KUBERNETES_MODE != true ]]; then
+        echo "Will use file detected and ignore any environment variables!"
+        DETECTED_LENFILE=true
+    fi
+elif [[ -f /mnt/settings/lenses.conf ]]; then
     echo "Detected /mnt/settings/lenses.conf."
-    cp /mnt/settings/lenses.conf /data/lenses.conf
+    cp /mnt/settings/lenses.conf /data/lenses-agent.conf
     if [[ $LC_KUBERNETES_MODE != true ]]; then
         echo "Will use file detected and ignore any environment variables!"
         DETECTED_LENFILE=true
@@ -267,6 +262,7 @@ if [[ -f /mnt/secrets/security.conf ]]; then
         echo "Will use file detected and ignore any environment variables!"
         DETECTED_SECFILE=true
     fi
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found one. Only an empty one should be used."
 fi
 
 # Create an empty security.conf to keep lenses happy
@@ -277,7 +273,7 @@ fi
 # Add an separator to prepare for the autodetection of the env vars
 # This line is important or else the first env var fails under certain circumstances
 if [[ $DETECTED_LENFILE == false && $LC_KUBERNETES_MODE == true ]]; then
-    echo -e "\n# Auto-detected env vars\n" >> /data/lenses.conf
+    echo -e "\n# Auto-detected env vars\n" >> /data/lenses-agent.conf
 fi
 
 # Add an separator to prepare for the autodetection of the env vars
@@ -309,7 +305,7 @@ for var in $(printenv | grep -E "^LENSES_" | sed -e 's/=.*//'); do
         fi
     else
         if [[ "$DETECTED_LENFILE" == "false" ]]; then
-            process_variable "$var" /data/lenses.conf
+            process_variable "$var" /data/lenses-agent.conf
         fi
     fi
 done
@@ -346,7 +342,8 @@ detect_file_decode_utility() {
 create_truststore_from_pem() {
     # Awesome awk script to split pem files with many certificates from
     # https://stackoverflow.com/a/29997111
-    local NUM_CERTS=$(grep -c 'END CERTIFICATE' "$1")
+    local NUM_CERTS
+    NUM_CERTS=$(grep -c 'END CERTIFICATE' "$1")
     for N in $(seq 0 $((NUM_CERTS - 1))); do
         ALIAS="${1%.*}-$N"
         cat "${1}" \
@@ -396,70 +393,14 @@ done
 
 # Find side files (SSL trust/key stores, jaas, krb5) shared via
 # mounts/secrets/env vars and process them
-for setting in $(find /mnt/settings /mnt/secrets /run/secrets /tmp/filecontent -type f -name 'FILECONTENT_*' 2>/dev/null); do
+find /mnt/settings /mnt/secrets /run/secrets /tmp/filecontent -type f -name 'FILECONTENT_*' 2>/dev/null \
+    | while read setting; do
     DECODE="$(detect_file_decode_utility "${setting}")"
     case "$setting" in
-        */FILECONTENT_SSL_KEYSTORE)
-            $DECODE < "${setting}" > /data/keystore.jks
-            chmod 400 /data/keystore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
-EOF
-            # TODO: Use add_conf_if_not_exists to add processor settings
-            # in order to avoid forcing users to use lenses.append.conf
-            echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-            ;;
-        */FILECONTENT_SSL_TRUSTSTORE)
-            $DECODE < "${setting}" > /data/truststore.jks
-            chmod 400 /data/truststore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.client.ssl.truststore.location=/data/truststore.jks
-EOF
-            echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
-            ;;
-        */FILECONTENT_SSL_CACERT_PEM)
-            $DECODE < "${setting}" > /tmp/cacert.pem
-            create_truststore_from_pem /tmp/cacert.pem /data/truststore.jks
-            rm -rf /tmp/cacert.pem
-            chmod 400 /data/truststore.jks
-            cat <<EOF >>/data/lenses.conf
-lenses.kafka.settings.client.ssl.truststore.location=/data/truststore.jks
-lenses.kafka.settings.client.ssl.truststore.password=changeit
-EOF
-            echo "File created. Sha256sum: $(sha256sum /data/truststore.jks)"
-            ;;
-        */FILECONTENT_SSL_CERT_PEM)
-            $DECODE < "${setting}" > /tmp/cert.pem
-            if [[ -f /tmp/key.pem ]]; then
-                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/keystore.jks
-                rm -rf /tmp/cert.pem /tmp/key.pem
-                chmod 400 /data/keystore.jks
-                cat <<EOF >> /data/lenses.conf
-lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.client.ssl.keystore.password=changeit
-lenses.kafka.settings.client.ssl.key.password=changeit
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-            fi
-            ;;
-        */FILECONTENT_SSL_KEY_PEM)
-            $DECODE < "${setting}" > /tmp/key.pem
-            if [[ -f /tmp/cert.pem ]]; then
-                create_keystore_from_pem /tmp/key.pem /tmp/cert.pem /data/keystore.jks
-                rm -rf /tmp/cert.pem /tmp/key.pem
-                chmod 400 /data/keystore.jks
-                cat <<EOF >> /data/lenses.conf
-lenses.kafka.settings.client.ssl.keystore.location=/data/keystore.jks
-lenses.kafka.settings.client.ssl.keystore.password=changeit
-lenses.kafka.settings.client.ssl.key.password=changeit
-EOF
-                echo "File created. Sha256sum: $(sha256sum /data/keystore.jks)"
-            fi
-            ;;
         */FILECONTENT_LENSES_SSL_KEYSTORE)
             $DECODE < "${setting}" > /data/lenses.jks
             chmod 400 /data/lenses.jks
-            cat <<EOF >>/data/lenses.conf
+            cat <<EOF >>/data/lenses-agent.conf
 lenses.ssl.keystore.location=/data/lenses.jks
 EOF
             # TODO: Use add_conf_if_not_exists to add processor settings
@@ -469,7 +410,7 @@ EOF
         */FILECONTENT_LENSES_SSL_TRUSTSTORE)
             $DECODE < "${setting}" > /data/lenses-truststore.jks
             chmod 400 /data/lenses-truststore.jks
-            cat <<EOF >>/data/lenses.conf
+            cat <<EOF >>/data/lenses-agent.conf
 lenses.ssl.truststore.location=/data/lenses-truststore.jks
 EOF
             echo "File created. Sha256sum: $(sha256sum /data/lenses-truststore.jks)"
@@ -480,7 +421,7 @@ EOF
                 create_keystore_from_pem /tmp/lenseskey.pem /tmp/lensescert.pem /data/lenses.jks
                 rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem
                 chmod 400 /data/lenses.jks
-                cat <<EOF >> /data/lenses.conf
+                cat <<EOF >> /data/lenses-agent.conf
 lenses.ssl.keystore.location=/data/lenses.jks
 lenses.ssl.keystore.password="changeit"
 lenses.ssl.key.password="changeit"
@@ -494,7 +435,7 @@ EOF
                 create_keystore_from_pem /tmp/lenseskey.pem /tmp/lensescert.pem /data/lenses.jks
                 rm -rf /tmp/lensescert.pem /tmp/lenseskey.pem
                 chmod 400 /data/lenses.jks
-                cat <<EOF >> /data/lenses.conf
+                cat <<EOF >> /data/lenses-agent.conf
 lenses.ssl.keystore.location=/data/lenses.jks
 lenses.ssl.keystore.password="changeit"
 lenses.ssl.key.password="changeit"
@@ -514,23 +455,6 @@ EOF
             export LENSES_OPTS="$LENSES_OPTS -Djava.security.krb5.conf=/data/krb5.conf"
             echo "File created. Sha256sum: $(sha256sum /data/krb5.conf)"
             ;;
-        */FILECONTENT_KEYTAB)
-            $DECODE < "${setting}" > /data/keytab
-            chmod 400 /data/keytab
-            add_conf_if_not_exists \
-                /data/security.conf \
-                'lenses.security.kerberos.keytab="/data/keytab"'
-            echo "File created. Sha256sum: $(sha256sum /data/keytab)"
-            ;;
-        */FILECONTENT_SECURITY_KEYTAB)
-            $DECODE < "${setting}" > /data/security-keytab
-            chmod 400 /data/security-keytab
-            sed '/lenses.security.kerberos.keytab=/d' -i /data/security.conf
-            cat <<EOF >> /data/security.conf
-lenses.security.kerberos.keytab=/data/security-keytab
-EOF
-            echo "File created. Sha256sum: $(sha256sum /data/security-keytab)"
-            ;;
         */FILECONTENT_JVM_SSL_TRUSTSTORE)
             $DECODE < "${setting}" > /data/jvm-truststore.jks
             echo "File created. Sha256sum: $(sha256sum /data/jvm-truststore.jks)"
@@ -540,7 +464,8 @@ EOF
         */FILECONTENT_JVM_SSL_TRUSTSTORE_PASSWORD)
             # Password cannot be in base64 because we cannot distinguish between
             # base64 and text in this case
-            export LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStorePassword=$(cat "${setting}")"
+            LENSES_OPTS="$LENSES_OPTS -Djavax.net.ssl.trustStorePassword=$(cat "${setting}")"
+            export LENSES_OPTS
             ;;
         *)
             echo "Unknown filecontent at '$setting' was provided but won't be used."
@@ -551,8 +476,8 @@ rm -rf /tmp/filecontent
 
 # If not explicit security file set auto-generated:
 DETECTED_SECCUSTOMFILE=false
-if ! grep -sqE '^lenses.secret.file=' /data/lenses.conf; then
-    echo -e "\\nlenses.secret.file=/data/security.conf" >> /data/lenses.conf
+if ! grep -sqE '^lenses.secret.file=' /data/lenses-agent.conf; then
+    echo -e "\\nlenses.secret.file=/data/security.conf" >> /data/lenses-agent.conf
 else
     # Setting this to true, so we can give a warning if the user provides a lenses.append.file
     DETECTED_SECCUSTOMFILE=true
@@ -560,10 +485,19 @@ fi
 
 # Append Advanced Configuration Snippet
 DETECTED_LENAPPENDFILE=false
-if [[ -f /mnt/settings/lenses.append.conf ]]; then
-    echo -e "\n# lenses.append.conf" >> /data/lenses.conf
-    cat /mnt/settings/lenses.append.conf >> /data/lenses.conf
-    echo "Appending advanced configuration snippet to lenses.conf"
+if [[ -f /mnt/settings/lenses.append.conf && -f /mnt/settings/lenses-agent.append.conf ]]; then
+    echo "WARN: there are two advanced configuration snippets to append '/mnt/settings/lenses-agent.append.conf' and '/mnt/settings/lenses.append.conf'. Only one should be used. The container will fail in 30 seconds."
+    sleep 30
+    exit 1
+elif [[ -f /mnt/settings/lenses-agent.append.conf ]]; then
+    echo -e "\n# lenses.append.conf" >> /data/lenses-agent.conf
+    cat /mnt/settings/lenses.append.conf >> /data/lenses-agent.conf
+    echo "Appending advanced configuration snippet to lenses-agent.conf"
+    DETECTED_LENAPPENDFILE=true
+elif [[ -f /mnt/settings/lenses.append.conf ]]; then
+    echo -e "\n# lenses.append.conf" >> /data/lenses-agent.conf
+    cat /mnt/settings/lenses.append.conf >> /data/lenses-agent.conf
+    echo "Appending advanced configuration snippet to lenses-agent.conf."
     DETECTED_LENAPPENDFILE=true
 fi
 DETECTED_SECAPPENDFILE=false
@@ -575,14 +509,24 @@ if [[ -f /mnt/settings/security.append.conf ]]; then
         echo "WARN: advanced configuration snippet may fail to be applied to user provided security.conf file."
     fi
     DETECTED_SECAPPENDFILE=true
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found a snippet to append."
 fi
 
 # Append Advanced Configuration via Env Vars (experimental)
 DETECTED_LENAPPENDVAR=false
-if [[ -n ${LENSES_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG ]]; then
-    echo -e "\n# LENSES_APPEND_CONF" >> /data/lenses.conf
-    echo "${LENSES_APPEND_CONF}" >> /data/lenses.conf
-    echo "Appending advanced configuration via LENSES_APPEND_CONF to lenses.conf"
+if [[ -n ${LENSES_APPEND_CONF} && -n ${LENSES_AGENT_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG ]]; then
+    echo "WARN: there are two advanced configuration snippets to append 'LENSES_AGENT_APPEND_CONF' and 'LENSES_APPEND_CONF'. Only one should be used. The container will fail in 30 seconds."
+    sleep 30
+    exit 1
+elif [[ -n ${LENSES_AGENT_APPEND_CONF} ]]; then
+    echo -e "\n# LENSES_AGENT_APPEND_CONF" >> /data/lenses-agent.conf
+    echo "${LENSES_AGENT_APPEND_CONF}" >> /data/lenses-agent.conf
+    echo "Appending advanced configuration via LENSES_AGENT_APPEND_CONF to lenses-agent.conf"
+    DETECTED_LENAPPENDVAR=true
+elif [[ -n ${LENSES_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG ]]; then
+    echo -e "\n# LENSES_APPEND_CONF" >> /data/lenses-agent.conf
+    echo "${LENSES_APPEND_CONF}" >> /data/lenses-agent.conf
+    echo "Appending advanced configuration via LENSES_APPEND_CONF to lenses-agent.conf"
     DETECTED_LENAPPENDVAR=true
 fi
 DETECTED_SECAPPENDVAR=false
@@ -594,12 +538,13 @@ if [[ -n ${SECURITY_APPEND_CONF} && ${EXPERIMENTAL} =~ $TRUE_REG  ]]; then
         echo "WARN: advanced configuration snippet may fail to be applied to user provided security.conf file."
     fi
     DETECTED_SECAPPENDVAR=true
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found a snippet to append."
 fi
 
 # Clear empty values (just in case)
-sed '/^\s*[^=]*=\s*$/d' -i /data/lenses.conf /data/security.conf
+sed '/^\s*[^=]*=\s*$/d' -i /data/lenses-agent.conf /data/security.conf
 
-# We created all need files. Set a more permissive umask for data and logs
+# We created all needed files. Set a more permissive umask for data and logs
 umask 0027
 
 # Check User and Group IDs
@@ -635,15 +580,14 @@ fi
 
 FORCE_ROOT_USER=${FORCE_ROOT_USER:-false}
 if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
-    echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534)"
-    echo "and drop priviliges."
+    echo "Running as root. Will change data ownership to nobody:nogroup (65534:65534) and drop priviliges."
     # Directories first, files second, in logical/timeline order
     chown -R -f nobody:nogroup \
           /data/log \
           /data/kafka-streams-state \
           /data/plugins \
           /data/storage \
-          /data/lenses.conf \
+          /data/lenses-agent.conf \
           /data/security.conf \
           /data/logback.xml \
           /data/keystore.jks \
@@ -659,7 +603,7 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/plugins \
           /data/storage
     chmod 640 -f \
-          /data/lenses.conf \
+          /data/lenses-agent.conf \
           /data/security.conf \
           /data/logback.xml \
           /data/keystore.jks \
@@ -678,13 +622,11 @@ else
     touch /data/log/lenses-test >/dev/null 2>&1 \
         && LOG_WRITEABLE=1 && rm /data/log/lenses-test
     [[ $LOG_WRITEABLE == 0 ]] \
-        && echo "ERROR! /data/log/ is not writeable by the set user:group ($C_UID:$C_GID)." \
-        && echo "       You can ignore this error if you set a custom, writeable directory for logs."
+        && echo "ERROR! /data/log/ is not writeable by the set user:group ($C_UID:$C_GID). You can ignore this error if you set a custom, writeable directory for logs."
     touch /data/kafka-streams-state/lenses-test >/dev/null 2>&1 \
         && STATE_WRITEABLE=1 && rm /data/kafka-streams-state/lenses-test
     [[ $STATE_WRITEABLE == 0 ]] \
-        && echo "ERROR! /data/kafka-streams-state/ is not writeable by the set user:group ($C_UID:$C_GID)." \
-        && echo "       You can ignore this error if you set a custom, writeable directory for state."
+        && echo "ERROR! /data/kafka-streams-state/ is not writeable by the set user:group ($C_UID:$C_GID). You can ignore this error if you set a custom, writeable directory for state."
 fi
 
 # Enable fastdata_agent for exporting metrics to prometheus
@@ -752,22 +694,25 @@ fi
 # Print information about possible overrides.
 echo "Setup script finished."
 if [[ $DETECTED_LENFILE =~ $TRUE_REG ]]; then
-    echo "You provided a 'lenses.conf' file. Autodetected settings will be ignored."
+    echo "You provided a 'lenses-agent.conf' or 'lenses.conf' file. Autodetected settings will be ignored."
 fi
 if [[ $DETECTED_SECFILE =~ $TRUE_REG ]]; then
     echo "You provided a 'security.conf' file. Autodetected security settings will be ignored."
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found one. Only an empty one should be used."
 fi
 if [[ $DETECTED_SECCUSTOMFILE =~ $TRUE_REG ]]; then
     echo "You provided a custom location for 'security.conf'. Autodetected security settings may be ignored."
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found one. Only an empty one should be used."
 fi
 if [[ $DETECTED_LENAPPENDFILE =~ $TRUE_REG ]]; then
-    echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
+    echo "You provided a 'lenses-agent.append.conf' or 'lenses.append.conf' file. It may override some autodetected settings."
 fi
 if [[ $DETECTED_SECAPPENDFILE =~ $TRUE_REG ]]; then
-    echo "You provided a 'lenses.append.conf' file. It may override some autodetected settings."
+    echo "You provided a 'security.append.conf' file. It may override some autodetected settings."
+    echo "Warning: the Lenses Agent should not have a 'security.conf' but we found a snippet to append."
 fi
 if [[ $DETECTED_LENAPPENDVAR =~ $TRUE_REG && $EXPERIMENTAL =~ $TRUE_REG ]]; then
-    echo "You set the LENSES_APPEND_CONF environment variable. It may override some autodetected settings."
+    echo "You set the LENSES_AGENT_APPEND_CONF or LENSES_APPEND_CONF environment variable. It may override some autodetected settings."
 fi
 if [[ $DETECTED_SECAPPENDVAR =~ $TRUE_REG && $EXPERIMENTAL =~ $TRUE_REG ]]; then
     echo "You set the SECURITY_APPEND_CONF environment variable. It may override some autodetected settings."
@@ -777,4 +722,4 @@ echo "Docker environment initialized. Starting Lenses."
 echo "================================================"
 
 cd /data
-exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses /data/lenses.conf
+exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses-agent /data/lenses-agent.conf

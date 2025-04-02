@@ -1,22 +1,25 @@
 ARG LENSES_BASE_VERSION=6.0
+ARG LENSES_PATCH_VERSION=0
 ARG LENSES_ARCHIVE=remote
-ARG LENSES_VERSION=5.5.14
+ARG LENSES_VERSION=${LENSES_BASE_VERSION}.${LENSES_PATCH_VERSION}
+# To be deprecated
 ARG LENSESCLI_ARCHIVE=remote
-ARG LENSESCLI_VERSION=5.5.4
+ARG LENSESCLI_PATCH_VERSION=0
+ARG LENSESCLI_VERSION=${LENSES_BASE_VERSION}.${LENSESCLI_PATCH_VERSION}
 
 # This is the default image we use for installing Lenses
 FROM alpine AS archive_remote
 ONBUILD ARG AD_UN
 ONBUILD ARG AD_PW
 ONBUILD ARG LENSES_VERSION LENSES_BASE_VERSION
-ONBUILD ARG AD_URL=https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/lenses-${LENSES_VERSION}-linux64.tar.gz
+ONBUILD ARG AD_URL=https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/agent/lenses-agent-${LENSES_VERSION}-linux64.tar.gz
 ONBUILD RUN apk add --no-cache wget \
         && echo "progress = dot:giga" | tee /etc/wgetrc \
         && mkdir -p /opt  \
         && echo "$AD_URL $AD_FILENAME" \
-        && if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
-        && tar xf /lenses.tgz -C /opt \
-        && rm /lenses.tgz
+        && if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses-agent.tgz \
+        && tar xf /lenses-agent.tgz -C /opt \
+        && rm /lenses-agent.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
 FROM alpine AS archive_local
@@ -32,7 +35,7 @@ ONBUILD RUN rm -rf /opt/lenses/ui \
             && mv /opt/dist /opt/lenses/ui \
             && sed \
                  -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses/ui/build.info | cut -f 2 -d ' ')/" \
-                 -i /opt/lenses/bin/lenses
+                 -i /opt/lenses/bin/lenses-agent
 
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} AS archive
@@ -43,6 +46,7 @@ RUN mkdir -p /opt/lensesio/ \
     && tar xf /fda.tgz -C /opt/lensesio \
     && rm /fda.tgz
 
+# Lenses cli binary should be deprecated from this docker in the future
 # This is the default image we use for installing lenses-cli
 FROM alpine AS lenses_cli_remote
 ONBUILD ARG CAD_UN
@@ -67,9 +71,10 @@ ARG LENSESCLI_ARCHIVE
 FROM lenses_cli_${LENSESCLI_ARCHIVE} AS lenses_cli
 
 # The final Lenses image for compatibility with older versions
-FROM debian:bullseye-slim AS lenses_debian
+# (that's also why we keep debian 11 instead of 12)
+FROM debian:11-slim AS lenses_debian
 LABEL org.opencontainers.image.authors="Marios Andreopoulos <marios@lenses.io>"
-LABEL org.opencontainers.image.ref.name="lensesio/lenses"
+LABEL org.opencontainers.image.ref.name="lensesio/lenses-agent"
 LABEL org.opencontainers.image.version=${LENSES_VERSION}
 LABEL org.opencontainers.imave.vendor="Lenses.io"
 
@@ -92,17 +97,16 @@ COPY /filesystem /
 
 # Add Lenses
 COPY --from=archive /opt /opt
-
-# Add Lenses CLI
+# Add Lenses CLI (should be removed in the future)
 COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
-    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
     && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
     && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
     && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
@@ -120,7 +124,7 @@ CMD ["/usr/local/bin/setup.sh"]
 
 
 # The final Lenses image
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 ARG LENSES_VERSION
 LABEL org.opencontainers.image.authors="Marios Andreopoulos <marios@lenses.io>"
 LABEL org.opencontainers.image.ref.name="lensesio/lenses"
@@ -130,7 +134,7 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
-        default-jre-headless \
+        openjdk-11-jre-headless \
         dumb-init \
         gosu \
     && rm -rf /var/lib/apt/lists/* \
@@ -147,16 +151,13 @@ COPY /filesystem /
 # Add Lenses
 COPY --from=archive /opt /opt
 
-# Add Lenses CLI
-COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
-
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
-    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses | sed -e 's/export //' | tee -a /build.info \
+RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
     && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
     && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
     && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
