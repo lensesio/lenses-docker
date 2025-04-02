@@ -24,15 +24,18 @@ fi
 
 # Set the tags (image names) for this build
 
-## Default image name (landoop/lenses:ATAG)
-TAGS_CMD="--tag $IMAGE_NAME"
-TAGS_CMD_DEBIAN="--tag $IMAGE_NAME-debian"
+# Deprecated, for agent we will start clean and publish only lensesio/lenses-agent
+# ## Default image name (landoop/lenses:ATAG)
+# TAGS_CMD="--tag $IMAGE_NAME"
+# TAGS_CMD_DEBIAN="--tag $IMAGE_NAME-debian"
+TAGS_CMD=""
+TAGS_CMD_DEBIAN=""
 
-## Master should lensesio/lenses:latest, lensesio/lenses:latest-debian
+## Master should lensesio/lenses-agent:latest, lensesio/lenses-agent:latest-debian
 if [[ $SOURCE_BRANCH == master ]]; then
     # 'landooop/lenses:latest' is pushed automatically
-    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:latest"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:latest-debian"
+    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses-agent:latest"
+    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses-agent:latest-debian"
 fi
 
 # Branches should publish minor (patch) and major (minor) version tags
@@ -40,12 +43,12 @@ if [[ $SOURCE_BRANCH =~ ^release/[0-9]+\.[0-9]+$ ]] \
        && [[ -n $LENSES_VERSION ]] \
        && [[ -n $LENSES_BASE_VERSION ]]; then
     # Push 'lensesio/lenses:$LENSES_BASE_VERSION'
-    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:$LENSES_BASE_VERSION"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:$LENSES_BASE_VERSION-debian"
+    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses-agent:$LENSES_BASE_VERSION"
+    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses-agent:$LENSES_BASE_VERSION-debian"
 
     # Also push 'lensesio/lenses:$MINOR_VERSION'
-    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:$LENSES_VERSION"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:$LENSES_VERSION-debian"
+    TAGS_CMD="$TAGS_CMD --tag lensesio/lenses-agent:$LENSES_VERSION"
+    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses-agent:$LENSES_VERSION-debian"
 fi
 
 # Build and push the images
