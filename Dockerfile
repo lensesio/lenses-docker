@@ -31,11 +31,11 @@ ONBUILD ADD $AD_FILENAME /opt
 FROM archive_local AS archive_local_with_ui
 ONBUILD ARG UI_FILENAME
 ONBUILD ADD $UI_FILENAME /opt
-ONBUILD RUN rm -rf /opt/lenses/ui \
-            && mv /opt/dist /opt/lenses/ui \
+ONBUILD RUN rm -rf /opt/lenses-agent/ui \
+            && mv /opt/dist /opt/lenses-agent/ui \
             && sed \
-                 -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses/ui/build.info | cut -f 2 -d ' ')/" \
-                 -i /opt/lenses/bin/lenses-agent
+                 -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses-agent/ui/build.info | cut -f 2 -d ' ')/" \
+                 -i /opt/lenses-agent/bin/lenses-agent
 
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} AS archive
@@ -95,8 +95,9 @@ COPY /filesystem /
 
 # PLACEHOLDER: This line can be used to inject code if needed, please do not remove #
 
-# Add Lenses
+# Add Lenses Agent and link old location for compatibility
 COPY --from=archive /opt /opt
+RUN cd /opt && ln -s lenses-agent lenses
 # Add Lenses CLI (should be removed in the future)
 COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
 
@@ -104,9 +105,9 @@ ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
-    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+RUN grep 'export LENSES_REVISION'      /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
     && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
     && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
     && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \
@@ -148,16 +149,19 @@ COPY /filesystem /
 
 # PLACEHOLDER: This line can be used to inject code if needed, please do not remove #
 
-# Add Lenses
+# Add Lenses Agent and link old location for compatibility
 COPY --from=archive /opt /opt
+RUN cd /opt && ln -s lenses-agent lenses
+# Add Lenses CLI (should be removed in the future)
+COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
 ARG BUILD_TIME
 ARG DOCKER_REPO=local
-RUN grep 'export LENSES_REVISION'      /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
-    && grep 'export LENSESUI_REVISION' /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
-    && grep 'export LENSES_VERSION'    /opt/lenses/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+RUN grep 'export LENSES_REVISION'      /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee /build.info \
+    && grep 'export LENSESUI_REVISION' /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
+    && grep 'export LENSES_VERSION'    /opt/lenses-agent/bin/lenses-agent | sed -e 's/export //' | tee -a /build.info \
     && echo "BUILD_BRANCH=${BUILD_BRANCH}"  | tee -a /build.info \
     && echo "BUILD_COMMIT=${BUILD_COMMIT}"  | tee -a /build.info \
     && echo "BUILD_TIME=${BUILD_TIME}"      | tee -a /build.info \

@@ -130,7 +130,7 @@ fi
 
 # Set logging
 if [[ ! -f /data/logback.xml ]]; then
-    sed -e 's|>logs/|>/data/log/|g' /opt/lenses/logback.xml > /data/logback.xml
+    sed -e 's|>logs/|>/data/log/|g' /opt/lenses-agent/logback.xml > /data/logback.xml
 fi
 
 # Set plugins directory if not explicitly set
@@ -722,4 +722,4 @@ echo "Docker environment initialized. Starting Lenses."
 echo "================================================"
 
 cd /data
-exec $C_SUCMD $C_SUID /opt/lenses/bin/lenses-agent /data/lenses-agent.conf
+exec $C_SUCMD $C_SUID /opt/lenses-agent/bin/lenses-agent /data/lenses-agent.conf
