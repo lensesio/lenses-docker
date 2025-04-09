@@ -55,7 +55,7 @@ ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
 ONBUILD ARG TARGETARCH TARGETOS
 ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${LENSESCLI_VERSION}-${TARGETOS}-${TARGETARCH}.tar.gz"
 ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
-          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}/hq \
+          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}/lenses \
           && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
@@ -64,7 +64,7 @@ ONBUILD ARG LC_FILENAME
 ONBUILD ARG TARGETARCH TARGETOS
 ONBUILD RUN mkdir -p /lenses-cli
 ONBUILD COPY $LC_FILENAME /lenses-cli.tgz
-ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin lenses-cli-${TARGETOS}-${TARGETARCH}/hq
+ONBUILD RUN tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin lenses-cli-${TARGETOS}-${TARGETARCH}/lenses
 
 # This image is here to just trigger the build of any of the above 3 images
 ARG LENSESCLI_ARCHIVE
@@ -99,7 +99,7 @@ COPY /filesystem /
 COPY --from=archive /opt /opt
 RUN cd /opt && ln -s lenses-agent lenses
 # Add Lenses CLI (should be removed in the future)
-COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
+COPY --from=lenses_cli /usr/bin/lenses /usr/bin/lenses
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
@@ -153,7 +153,7 @@ COPY /filesystem /
 COPY --from=archive /opt /opt
 RUN cd /opt && ln -s lenses-agent lenses
 # Add Lenses CLI (should be removed in the future)
-COPY --from=lenses_cli /usr/bin/hq /usr/bin/hq
+COPY --from=lenses_cli /usr/bin/lenses /usr/bin/lenses
 
 ARG BUILD_BRANCH
 ARG BUILD_COMMIT
