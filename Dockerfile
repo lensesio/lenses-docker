@@ -55,7 +55,7 @@ ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
 ONBUILD ARG TARGETARCH TARGETOS
 ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${LENSESCLI_VERSION}-${TARGETOS}-${TARGETARCH}.tar.gz"
 ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
-          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}/lenses \
+          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli/lenses \
           && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL

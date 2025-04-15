@@ -667,7 +667,7 @@ if [[ -n $DEMO_HQ_URL && \
 fi
 if [[ -n $DEMO_AGENTKEY_PATH && \
           -f $DEMO_AGENTKEY_PATH ]] && \
-          hq -a "$DEMO_HQ_URL" -u "$DEMO_HQ_USER" -p "$DEMO_HQ_PASSWORD" environments list | grep -sq "$DEMO_HQ_ENV_NAME"; then
+          lenses -a "$DEMO_HQ_URL" -u "$DEMO_HQ_USER" -p "$DEMO_HQ_PASSWORD" environments list | grep -sq "$DEMO_HQ_ENV_NAME"; then
     echo "WARNING! Stored DEMO_AGENTKEY_PATH for existing environment found. This is insecure, meant only for demos."
     LENSESHQ_AGENT_KEY="$(cat "$DEMO_AGENTKEY_PATH")"
     export LENSESHQ_AGENT_KEY
@@ -676,7 +676,7 @@ elif [[ -n $DEMO_HQ_URL && \
             -n $DEMO_HQ_PASSWORD ]]; then
     echo "WARNING! We will try to register ourselves to HQ mode. This is insecure, meant only for demos."
     for ((i=0;i<20;i++)); do curl -s -o /dev/null "$DEMO_HQ_URL" && break; sleep 3; done
-    LENSESHQ_AGENT_KEY="$(hq -a "$DEMO_HQ_URL" -u "$DEMO_HQ_USER" -p "$DEMO_HQ_PASSWORD" \
+    LENSESHQ_AGENT_KEY="$(lenses -a "$DEMO_HQ_URL" -u "$DEMO_HQ_USER" -p "$DEMO_HQ_PASSWORD" \
                              environments create --tier development --name "$DEMO_HQ_ENV_NAME" \
                           | grep -Eo "agent_key_[A-Za-z0-9_]+")"
     if [[ -n $LENSESHQ_AGENT_KEY ]]; then
