@@ -1,6 +1,6 @@
 ARG LENSES_BASE_VERSION=5.5
 ARG LENSES_ARCHIVE=remote
-ARG LENSES_VERSION=5.5.17
+ARG LENSES_VERSION=5.5.18
 ARG LENSESCLI_ARCHIVE=remote
 ARG LENSESCLI_VERSION=5.5.4
 
@@ -11,12 +11,12 @@ ONBUILD ARG AD_PW
 ONBUILD ARG LENSES_VERSION LENSES_BASE_VERSION
 ONBUILD ARG AD_URL=https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/lenses-${LENSES_VERSION}-linux64.tar.gz
 ONBUILD RUN apk add --no-cache wget \
-        && echo "progress = dot:giga" | tee /etc/wgetrc \
-        && mkdir -p /opt  \
-        && echo "$AD_URL $AD_FILENAME" \
-        && if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
-        && tar xf /lenses.tgz -C /opt \
-        && rm /lenses.tgz
+	&& echo "progress = dot:giga" | tee /etc/wgetrc \
+	&& mkdir -p /opt  \
+	&& echo "$AD_URL $AD_FILENAME" \
+	&& if [ -z "$AD_URL" ]; then exit 0; fi && wget $AD_UN $AD_PW "$AD_URL" -O /lenses.tgz \
+	&& tar xf /lenses.tgz -C /opt \
+	&& rm /lenses.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
 FROM alpine AS archive_local
@@ -29,10 +29,10 @@ FROM archive_local AS archive_local_with_ui
 ONBUILD ARG UI_FILENAME
 ONBUILD ADD $UI_FILENAME /opt
 ONBUILD RUN rm -rf /opt/lenses/ui \
-            && mv /opt/dist /opt/lenses/ui \
-            && sed \
-                 -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses/ui/build.info | cut -f 2 -d ' ')/" \
-                 -i /opt/lenses/bin/lenses
+	    && mv /opt/dist /opt/lenses/ui \
+	    && sed \
+		 -e "s/export LENSESUI_REVISION=.*/export LENSESUI_REVISION=$(cat /opt/lenses/ui/build.info | cut -f 2 -d ' ')/" \
+		 -i /opt/lenses/bin/lenses
 
 # This image is here to just trigger the build of any of the above 3 images
 FROM archive_${LENSES_ARCHIVE} AS archive
@@ -51,8 +51,8 @@ ONBUILD ARG LENSESCLI_VERSION LENSES_BASE_VERSION
 ONBUILD ARG TARGETARCH TARGETOS
 ONBUILD ARG LC_URL="https://archive.lenses.io/lenses/${LENSES_BASE_VERSION}/cli/lenses-cli-${TARGETOS}-${TARGETARCH}-${LENSESCLI_VERSION}.tar.gz"
 ONBUILD RUN wget $CAD_UN $CAD_PW "$LC_URL" -O /lenses-cli.tgz \
-          && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}-$LENSESCLI_VERSION/lenses-cli \
-          && rm -f /lenses-cli.tgz
+	  && tar xzf /lenses-cli.tgz --strip-components=1 -C /usr/bin/ lenses-cli-${TARGETOS}-${TARGETARCH}-$LENSESCLI_VERSION/lenses-cli \
+	  && rm -f /lenses-cli.tgz
 
 # This image gets Lenses from a local file instead of a remote URL
 FROM alpine AS lenses_cli_local
@@ -74,13 +74,13 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
-        default-jre-headless \
-        dumb-init \
-        gosu \
+	curl \
+	default-jre-headless \
+	dumb-init \
+	gosu \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
-            | tee -a /root/.bashrc >> /etc/bash.bashrc \
+	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
 
 ADD setup.sh debug-setup.sh /usr/local/bin/
@@ -128,13 +128,13 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl \
-        default-jre-headless \
-        dumb-init \
-        gosu \
+	curl \
+	default-jre-headless \
+	dumb-init \
+	gosu \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
-            | tee -a /root/.bashrc >> /etc/bash.bashrc \
+	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
     && mkdir -p /mnt/settings /mnt/secrets
 
 ADD setup.sh debug-setup.sh /usr/local/bin/
