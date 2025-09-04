@@ -636,6 +636,7 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/storage \
           /data/lenses-agent.conf \
           /data/security.conf \
+	  /data/provisioning/provisioning.yaml \
           /data/logback.xml \
           /data/keystore.jks \
           /data/truststore.jks \
@@ -643,15 +644,16 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/lenses.jks \
           /data/jaas.conf \
           /data/krb5.conf \
-          /data/keytab
+          /data/keytab || true
     chmod 750 -f \
           /data/log \
           /data/kafka-streams-state \
           /data/plugins \
-          /data/storage
+          /data/storage || true
     chmod 640 -f \
           /data/lenses-agent.conf \
           /data/security.conf \
+	  /data/provisioning/provisioning.yaml \
           /data/logback.xml \
           /data/keystore.jks \
           /data/truststore.jks \
@@ -659,7 +661,7 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/lenses.jks \
           /data/jaas.conf \
           /data/krb5.conf \
-          /data/keytab
+          /data/keytab || true
     C_SUCMD=/usr/sbin/gosu
     C_SUID="nobody:nogroup"
 else
