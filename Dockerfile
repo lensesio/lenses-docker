@@ -116,9 +116,9 @@ RUN grep 'export LENSES_REVISION'      /opt/lenses-agent/bin/lenses-agent | sed 
 EXPOSE 9991
 
 WORKDIR /
-RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/storage \
+RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/storage /data/provisioning \
     && chmod -R 777 /data
-VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage"]
+VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage", "/data/provisioning"]
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/local/bin/setup.sh"]
@@ -170,9 +170,9 @@ RUN grep 'export LENSES_REVISION'      /opt/lenses-agent/bin/lenses-agent | sed 
 EXPOSE 9991
 
 WORKDIR /
-RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/storage \
+RUN mkdir -p /data /data/kafka-streams-state /data/log /data/plugins /data/storage /data/provisioning \
     && chmod -R 777 /data
-VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage"]
+VOLUME ["/data/kafka-streams-state", "/data/log", "/data/plugins", "/data/storage", "/data/provisioning"]
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["/usr/local/bin/setup.sh"]
