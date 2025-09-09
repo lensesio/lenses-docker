@@ -150,7 +150,6 @@ OPTS_DEPRECATED=" $OPTS_NEEDQUOTE_DEPR $OPTS_NEEDNOQUOTE_DEPR $OPTS_SENSITIVE_DE
 # Remove configuration because it will be re-created.
 rm -f /data/lenses-agent.conf
 rm -f /data/security.conf
-rm -f /data/provisioning/provisioning.yaml
 
 # This takes as argument a variable name and detects if it contains sensitive data
 function detect_sensitive_variable {
@@ -317,13 +316,17 @@ DETECTED_PROVISIONING_FILE=false
 PROVISIONING_STATUS=""
 # Only handle provisioning if using default path and no external lenses config is provided
 if [[ "${LENSES_PROVISIONING_PATH}" == "/data/provisioning" && $DETECTED_LENFILE == false ]]; then
-    # This is bad practice, because provisioning can only check for
-    # file updates in the directory it is being loaded from. Users
-    # must set themselves the 'lenses.provisioning.path' to something
-    # different that '/data/provisioning' if they want autodetection
-    # to work. Also, in case the copied file is used, it requires all
-    # referenced files (e.g., keystores) to have an absolute path
-    if [[ -f /mnt/settings/provisioning.yaml ]]; then
+    if [[ -f "${LENSES_PROVISIONING_PATH}/provisioning.yaml" ]]; then
+	echo "WARN: provisioning.yaml already exists at '${LENSES_PROVISIONING_PATH}/provisioning.yaml'. It will not be modified."
+	PROVISIONING_STATUS="exists"
+	DETECTED_PROVISIONING_FILE=true
+    elif [[ -f /mnt/settings/provisioning.yaml ]]; then
+	# This is bad practice, because provisioning can only check for
+	# file updates in the directory it is being loaded from. Users
+	# must set themselves the 'lenses.provisioning.path' to something
+	# different that '/data/provisioning' if they want autodetection
+	# to work. Also, in case the copied file is used, it requires all
+	# referenced files (e.g., keystores) to have an absolute path
         echo "Detected /mnt/settings/provisioning.yaml."
         cp /mnt/settings/provisioning.yaml "${LENSES_PROVISIONING_PATH}/provisioning.yaml"
         DETECTED_PROVISIONING_FILE=true
@@ -769,6 +772,10 @@ fi
 
 # Provisioning status messages
 case "$PROVISIONING_STATUS" in
+    "exists")
+	echo "A 'provisioning.yaml' file was detected under '/data/provisioning' (default LENSES_PROVISIONING_PATH)."
+	echo "Warning: Any other provisioning setting or file will be ignored. This is normal if managing provisioning via HQ."
+	;;
     "copied_from_mount")
         echo "You provided '/mnt/settings/provisioning.yaml' but did not set the LENSES_PROVISIONING_PATH."
 	# Do not mention the full path, things under /data are not to be managed by users
