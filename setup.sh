@@ -637,9 +637,9 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/kafka-streams-state \
           /data/plugins \
           /data/storage \
+	  /data/provisioning \
           /data/lenses-agent.conf \
           /data/security.conf \
-	  /data/provisioning/provisioning.yaml \
           /data/logback.xml \
           /data/keystore.jks \
           /data/truststore.jks \
@@ -652,7 +652,8 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/log \
           /data/kafka-streams-state \
           /data/plugins \
-          /data/storage || true
+          /data/storage \
+	  /data/provision || true
     chmod 640 -f \
           /data/lenses-agent.conf \
           /data/security.conf \
