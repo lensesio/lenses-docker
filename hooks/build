@@ -72,7 +72,7 @@ docker buildx build \
 ## multi-arch builds. Note that our Debian images is arm64 compatible, we just
 ## not build and publish this variant.
 docker buildx build \
-       --platform=linux/amd64 \
+       --platform=linux/amd64,linux/arm64 \
        --push \
        --build-arg "BUILD_BRANCH=${SOURCE_BRANCH}" \
        --build-arg "BUILD_COMMIT=${BUILD_COMMIT}" \
