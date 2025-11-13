@@ -1,6 +1,6 @@
 # Lenses® for Apache Kafka
 
-This is the official Docker for [Lenses](https://lenses.io/kafka-lenses) that
+This is the official Docker for the [Lenses Agent](https://lenses.io/product) that
 enables you to:
 
 * View and Query Kafka Topic Data (Avro & JSon) - Browse and query with Lenses
@@ -25,14 +25,14 @@ engineering talk is on [Discourse](https://ask.lenses.io) and [Slack](https://la
 ## The Docker Image
 
 **Please check out the
-[docker image documentation at docs.lenses.io](https://docs.lenses.io/current/installation/getting-started/docker/)
+[docker image documentation at docs.lenses.io](https://docs.lenses.io/latest/deployment/installation/docker)
 for the most recent docs and the complete set of features, settings and tweak
 knobs.**
 
 
 This image is aimed for our enterprise clients, though anyone with a free
-developer license may use it. Visit
-our [download page](https://lenses.io/downloads/) to get a free developer
+community license may use it. Visit
+our [download page](https://lenses.io/community-edition/) to get a free developer
 license or an enterprise trial.  Only Lenses is included in this docker. Our
 development environment image, which additionally includes Kafka, Connect,
 Schema Registry and our open-source Stream Reactor collection of connectors can
