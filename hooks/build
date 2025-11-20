@@ -27,7 +27,10 @@ TAGS_CMD="--tag $IMAGE_NAME"
 TAGS_CMD_DEBIAN="--tag $IMAGE_NAME-debian"
 
 ## Master should lensesio/lenses:latest, lensesio/lenses:latest-debian
-if [[ $SOURCE_BRANCH == master ]]; then
+## Lenses 5.5 is the last version of lensesio/lenses, so it should
+## takeover the latest tag.
+## Starting with Lenses 6 we have lensesio/lenses-hq and lensesio/lenses-agent
+if [[ $SOURCE_BRANCH == "release/5.5" ]]; then
     # 'landooop/lenses:latest' is pushed automatically
     TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:latest"
     TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:latest-debian"
