@@ -605,7 +605,6 @@ C_GID="$(id -g)"
 # C_STATE_UID="$(stat -c '%u' /data/kafka-streams-state)"
 # C_STATE_GID="$(stat -c '%g' /data/kafka-streams-state)"
 C_SUCMD=""
-C_SUID=""
 
 # If running as root and DEBUG_TOOLS is set, install tools for debugging
 if [[ "$C_UID" == 0 ]] && [[ $DEBUG_TOOLS =~ $TRUE_REG ]]; then
@@ -666,8 +665,7 @@ if [[ "$C_UID" == 0 ]] && [[ $FORCE_ROOT_USER =~ $FALSE_REG ]]; then
           /data/jaas.conf \
           /data/krb5.conf \
           /data/keytab || true
-    C_SUCMD=/usr/sbin/gosu
-    C_SUID="nobody:nogroup"
+    C_SUCMD="setpriv --reuid nobody --regid nogroup --init-groups"
 else
     LOG_WRITEABLE=0
     STATE_WRITEABLE=0
@@ -797,4 +795,4 @@ echo "Docker environment initialized. Starting Lenses."
 echo "================================================"
 
 cd /data
-exec $C_SUCMD $C_SUID /opt/lenses-agent/bin/lenses-agent /data/lenses-agent.conf
+exec $C_SUCMD /opt/lenses-agent/bin/lenses-agent /data/lenses-agent.conf

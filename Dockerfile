@@ -83,7 +83,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	default-jre-headless \
 	dumb-init \
-	gosu \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
 	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
@@ -137,7 +136,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	openjdk-11-jre-headless \
 	dumb-init \
-	gosu \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
 	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
