@@ -83,10 +83,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	default-jre-headless \
 	dumb-init \
+	locales \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
 	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
-    && mkdir -p /mnt/settings /mnt/secrets
+    && mkdir -p /mnt/settings /mnt/secrets \
+    && localedef -i en_US -f UTF-8 en_US.UTF-8
+
+# Generate and select a UTF-8 locale so Lenses processes non-ASCII data correctly
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ADD setup.sh debug-setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
@@ -127,7 +132,7 @@ CMD ["/usr/local/bin/setup.sh"]
 FROM ubuntu:24.04
 ARG LENSES_VERSION
 LABEL org.opencontainers.image.authors="Marios Andreopoulos <marios@lenses.io>"
-LABEL org.opencontainers.image.ref.name="lensesio/lenses"
+LABEL org.opencontainers.image.ref.name="lensesio/lenses-agent"
 LABEL org.opencontainers.image.version=${LENSES_VERSION}
 LABEL org.opencontainers.imave.vendor="Lenses.io"
 
@@ -136,10 +141,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
 	openjdk-11-jre-headless \
 	dumb-init \
+	locales \
     && rm -rf /var/lib/apt/lists/* \
     && echo 'export PS1="\[\033[1;31m\]\u\[\033[1;33m\]@\[\033[1;34m\]lenses \[\033[1;36m\]\W\[\033[1;0m\] $ "' \
 	    | tee -a /root/.bashrc >> /etc/bash.bashrc \
-    && mkdir -p /mnt/settings /mnt/secrets
+    && mkdir -p /mnt/settings /mnt/secrets \
+    && localedef -i en_US -f UTF-8 en_US.UTF-8
+
+# Generate and select a UTF-8 locale so Lenses processes non-ASCII data correctly
+ENV LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
 ADD setup.sh debug-setup.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/setup.sh /usr/local/bin/debug-setup.sh
