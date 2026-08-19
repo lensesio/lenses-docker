@@ -52,14 +52,16 @@ if [[ $SOURCE_BRANCH =~ ^release/[0-9]+\.[0-9]+$ ]] \
 fi
 
 # Build and push the images
-# BuildKit is pinned because v0.32.x bundles runc v1.4.3, which masks /proc dirs
-# with nr_inodes=1 and so fails container init on the Ubuntu 20.04 kernel the
-# Docker Hub builders run (https://github.com/opencontainers/runc/issues/5348).
+# BuildKit is pinned to the last image whose runc predates the /proc masking
+# change: runc >= v1.3.6 masks directories with nr_inodes=1, which the Ubuntu
+# 20.04 kernel on the Docker Hub builders rejects, failing container init on
+# every RUN (https://github.com/opencontainers/runc/issues/5348). v0.30.0 ships
+# runc v1.3.5; v0.31.x ships v1.3.6 and v0.32.x ships v1.4.3, both affected.
 # Unpin once BuildKit ships runc >= v1.5.1.
 docker buildx create \
        --name mybuilder \
        --driver docker-container \
-       --driver-opt image=moby/buildkit:v0.31.2 \
+       --driver-opt image=moby/buildkit:v0.30.0 \
        --bootstrap \
        --use
 ## Standard images
