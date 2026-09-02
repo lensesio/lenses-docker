@@ -81,7 +81,7 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
-	default-jre-headless \
+	openjdk-17-jre-headless \
 	dumb-init \
 	locales \
     && rm -rf /var/lib/apt/lists/* \
@@ -139,7 +139,7 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
-	openjdk-11-jre-headless \
+	openjdk-17-jre-headless \
 	dumb-init \
 	locales \
     && rm -rf /var/lib/apt/lists/* \
