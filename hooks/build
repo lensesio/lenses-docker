@@ -24,16 +24,14 @@ fi
 
 ## Default image name (landoop/lenses:ATAG)
 TAGS_CMD="--tag $IMAGE_NAME"
-TAGS_CMD_DEBIAN="--tag $IMAGE_NAME-debian"
 
-## Master should lensesio/lenses:latest, lensesio/lenses:latest-debian
+## Master should publish lensesio/lenses:latest
 ## Lenses 5.5 is the last version of lensesio/lenses, so it should
 ## takeover the latest tag.
 ## Starting with Lenses 6 we have lensesio/lenses-hq and lensesio/lenses-agent
 if [[ $SOURCE_BRANCH == "release/5.5" ]]; then
     # 'landooop/lenses:latest' is pushed automatically
     TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:latest"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:latest-debian"
 fi
 
 # Branches should publish minor (patch) and major (minor) version tags
@@ -42,11 +40,9 @@ if [[ $SOURCE_BRANCH =~ ^release/[0-9]+\.[0-9]+$ ]] \
        && [[ -n $LENSES_BASE_VERSION ]]; then
     # Push 'lensesio/lenses:$LENSES_BASE_VERSION'
     TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:$LENSES_BASE_VERSION"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:$LENSES_BASE_VERSION-debian"
 
     # Also push 'lensesio/lenses:$MINOR_VERSION'
     TAGS_CMD="$TAGS_CMD --tag lensesio/lenses:$LENSES_VERSION"
-    TAGS_CMD_DEBIAN="$TAGS_CMD_DEBIAN --tag lensesio/lenses:$LENSES_VERSION-debian"
 fi
 
 # Build and push the images
@@ -71,18 +67,4 @@ docker buildx build \
        --build-arg "BUILD_TIME=${BUILD_TIME}" \
        --build-arg "DOCKER_REPO=${DOCKER_REPO}" \
        ${TAGS_CMD} \
-       .
-## Debian images. We only support linux/amd64 here because we cater to old
-## operating systems with outdated docker versions that may not support
-## multi-arch builds. Note that our Debian images is arm64 compatible, we just
-## not build and publish this variant.
-docker buildx build \
-       --platform=linux/amd64 \
-       --push \
-       --build-arg "BUILD_BRANCH=${SOURCE_BRANCH}" \
-       --build-arg "BUILD_COMMIT=${BUILD_COMMIT}" \
-       --build-arg "BUILD_TIME=${BUILD_TIME}" \
-       --build-arg "DOCKER_REPO=${DOCKER_REPO}" \
-       --target lenses_debian \
-       ${TAGS_CMD_DEBIAN} \
        .
