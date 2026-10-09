@@ -1,10 +1,10 @@
-ARG LENSES_BASE_VERSION=6.2
-ARG LENSES_PATCH_VERSION=10
+ARG LENSES_BASE_VERSION=6.3
+ARG LENSES_PATCH_VERSION=0
 ARG LENSES_ARCHIVE=remote
 ARG LENSES_VERSION=${LENSES_BASE_VERSION}.${LENSES_PATCH_VERSION}
 # To be deprecated
 ARG LENSESCLI_ARCHIVE=remote
-ARG LENSESCLI_PATCH_VERSION=10
+ARG LENSESCLI_PATCH_VERSION=0
 ARG LENSESCLI_VERSION=${LENSES_BASE_VERSION}.${LENSESCLI_PATCH_VERSION}
 
 # This is the default image we use for installing Lenses
@@ -81,7 +81,7 @@ LABEL org.opencontainers.imave.vendor="Lenses.io"
 # Update, install tooling and some basic setup
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	curl \
-	openjdk-11-jre-headless \
+	openjdk-17-jre-headless \
 	dumb-init \
 	locales \
     && rm -rf /var/lib/apt/lists/* \
