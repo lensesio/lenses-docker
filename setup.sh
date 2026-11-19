@@ -682,6 +682,9 @@ else
         && echo "ERROR! /data/kafka-streams-state/ is not writeable by the set user:group ($C_UID:$C_GID). You can ignore this error if you set a custom, writeable directory for state."
 fi
 
+# Disable the JDK Base64 intrinsics until the JDK is fixed (CVE-2026-114938).
+export LENSES_OPTS="$LENSES_OPTS -XX:-UseBASE64Intrinsics"
+
 # Enable fastdata_agent for exporting metrics to prometheus
 if [[ $PROMETHEUS_METRICS_PORT -ne 0 ]]; then
     export LENSES_OPTS="$LENSES_OPTS -javaagent:/opt/lensesio/fast_data_monitoring/jmx_prometheus_javaagent.jar=$PROMETHEUS_METRICS_PORT:/opt/lensesio/fast_data_monitoring/exporter.yml"
